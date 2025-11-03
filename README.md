@@ -10,7 +10,7 @@
 ✅ Works on all macOS versions (optimized for Sequoia 15.x)
 
 [![macOS](https://img.shields.io/badge/macOS-13.0%2B-blue.svg)](https://www.apple.com/macos/)
-[![Version](https://img.shields.io/badge/version-2.0-green.svg)](https://github.com/mihai-chindris/windowserver-fix)
+[![Version](https://img.shields.io/badge/version-2.0-green.svg)](https://github.com/chindris-mihai-alexandru/windowserver-fix)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
 [Quick Install](#quick-install) • [Features](#features) • [How It Works](#how-it-works) • [FAQ](#faq) • [Troubleshooting](#troubleshooting)
