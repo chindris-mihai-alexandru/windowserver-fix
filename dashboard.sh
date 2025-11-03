@@ -49,17 +49,32 @@ draw_bar() {
 
 show_dashboard() {
     # Get WindowServer stats
-    stats=$(ps aux | grep "WindowServer" | grep -v grep | awk '{print $3, $4, $6}')
+    ws_pid=$(pgrep WindowServer)
     
-    if [ -z "$stats" ]; then
+    if [ -z "$ws_pid" ]; then
         echo -e "${RED}ERROR: WindowServer process not found${NC}"
         return 1
     fi
     
-    cpu=$(echo "$stats" | awk '{print $1}')
-    mem_percent=$(echo "$stats" | awk '{print $2}')
-    mem_kb=$(echo "$stats" | awk '{print $3}')
-    mem_mb=$((mem_kb / 1024))
+    # Use top for accurate memory (matches Activity Monitor)
+    cpu=$(ps aux | grep "WindowServer" | grep -v grep | awk '{print $3}')
+    mem_str=$(top -l 1 -stats pid,command,mem -pid "$ws_pid" | grep WindowServer | awk '{print $3}')
+    
+    # Convert memory string (e.g., "12G", "500M", "100K") to MB
+    if [[ $mem_str == *G ]]; then
+        mem_mb=$(echo "${mem_str%G} * 1024" | bc | cut -d. -f1)
+    elif [[ $mem_str == *M ]]; then
+        mem_mb=$(echo "${mem_str%M}" | cut -d. -f1)
+    elif [[ $mem_str == *K ]]; then
+        mem_mb=$(echo "${mem_str%K} / 1024" | bc | cut -d. -f1)
+    else
+        mem_mb=0
+    fi
+    
+    # Calculate percentage of total memory
+    total_mem=$(sysctl -n hw.memsize)
+    total_mem_mb=$((total_mem / 1024 / 1024))
+    mem_percent=$(echo "scale=1; ($mem_mb * 100) / $total_mem_mb" | bc)
     
     # Get display info
     display_count=$(system_profiler SPDisplaysDataType | grep -c "Resolution:")
