@@ -3,11 +3,11 @@ set -e
 
 # WindowServer Fix - Installation Script
 # Supports: macOS Sequoia 15.0+
-# Usage: curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/windowserver-fix/main/install.sh | bash
+# Usage: ./install.sh (run from cloned repository)
 
 VERSION="2.0.0"
 INSTALL_DIR="$HOME/windowserver-fix"
-REPO_URL="https://github.com/YOUR_USERNAME/windowserver-fix"
+REPO_URL="https://github.com/chindri-mihai-alexandru/windowserver-fix"
 LAUNCH_AGENT_PLIST="$HOME/Library/LaunchAgents/com.windowserver-fix.daemon.plist"
 
 echo "============================================"

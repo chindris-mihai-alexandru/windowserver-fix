@@ -94,10 +94,10 @@ echo
 echo "WindowServer Fix has been completely removed from your system."
 echo
 echo "If you experienced issues, please report them at:"
-echo "  https://github.com/YOUR_USERNAME/windowserver-fix/issues"
+echo "  https://github.com/chindri-mihai-alexandru/windowserver-fix/issues"
 echo
 echo "To reinstall in the future:"
-echo "  git clone https://github.com/YOUR_USERNAME/windowserver-fix.git ~/windowserver-fix"
+echo "  git clone https://github.com/chindri-mihai-alexandru/windowserver-fix.git ~/windowserver-fix"
 echo "  cd ~/windowserver-fix && ./install.sh"
 echo
 echo "Thank you for trying WindowServer Fix!"

@@ -44,7 +44,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/windowserver-fix.git
+git clone https://github.com/chindri-mihai-alexandru/windowserver-fix.git
 cd windowserver-fix
 
 # Read any script
@@ -403,8 +403,8 @@ Subject: `[SECURITY] Your Question Here`
 
 ### General Support
 
-- [Open an Issue](https://github.com/YOUR_USERNAME/windowserver-fix/issues)
-- [Discussions](https://github.com/YOUR_USERNAME/windowserver-fix/discussions)
+- [Open an Issue](https://github.com/chindri-mihai-alexandru/windowserver-fix/issues)
+- [Discussions](https://github.com/chindri-mihai-alexandru/windowserver-fix/discussions)
 
 ---
 
@@ -424,6 +424,6 @@ Subject: `[SECURITY] Your Question Here`
 
 **Your security is our priority. When in doubt, read the code.**
 
-[View Source Code](https://github.com/YOUR_USERNAME/windowserver-fix) • [Report Security Issue](mailto:chindris.mihai.alexandru@gmail.com)
+[View Source Code](https://github.com/chindri-mihai-alexandru/windowserver-fix) • [Report Security Issue](mailto:chindris.mihai.alexandru@gmail.com)
 
 </div>

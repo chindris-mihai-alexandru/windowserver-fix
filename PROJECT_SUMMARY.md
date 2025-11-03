@@ -186,7 +186,7 @@ windowserver-fix/
 1. Create GitHub repository
 2. Push code:
    ```bash
-   git remote add origin https://github.com/YOUR_USERNAME/windowserver-fix.git
+   git remote add origin https://github.com/chindri-mihai-alexandru/windowserver-fix.git
    git branch -M main
    git push -u origin main
    ```

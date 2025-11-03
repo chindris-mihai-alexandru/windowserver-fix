@@ -33,28 +33,35 @@ macOS Sequoia (15.x) has a **confirmed, critical memory leak** in WindowServer:
 
 **Real-world example from testing:** M1 Max MacBook Pro with 2 displays and minimal apps open: **12GB WindowServer usage** (should be <500MB).
 
-Apple is aware and working on a fix. **This toolkit provides immediate mitigation.**
+**Status:** Apple is aware and working on a fix. This toolkit provides immediate mitigation while we wait for an official patch.
+
+---
+
+## 🎯 Status
+
+- **Tested on:** macOS 15.1 (Sequoia), M1 Max with dual 5K displays
+- **Stability:** Continuous operation validated
+- **Accuracy:** Matches Activity Monitor memory reporting
+- **Release Date:** November 3, 2025
+- **Version:** 2.0.0 (Beta)
+- **License:** MIT (open for community contributions)
 
 ---
 
 ## ⚡ Quick Install
 
-### One-Line Install (Recommended)
+### Manual Install (Recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/windowserver-fix/main/install.sh | bash
-```
-
-### Manual Install
-
-```bash
-git clone https://github.com/YOUR_USERNAME/windowserver-fix.git
+git clone https://github.com/chindri-mihai-alexandru/windowserver-fix.git
 cd windowserver-fix
 chmod +x *.sh
-./daemon.sh start
+./install.sh
 ```
 
-**That's it!** The daemon is now monitoring WindowServer and will auto-apply fixes when needed.
+**That's it!** Follow the installer prompts to set up automatic monitoring.
+
+> **Note:** One-line curl install coming in v2.1. For now, use manual installation for safety and transparency.
 
 ---
 
@@ -66,7 +73,7 @@ chmod +x *.sh
 |---------|-------------|
 | 🔍 **Real-Time Monitoring** | Tracks WindowServer CPU & memory every 60 seconds |
 | 🤖 **Auto-Fix Daemon** | Applies fixes automatically when thresholds exceeded |
-| 📊 **Accurate Reporting** | Matches Activity Monitor (fixed critical bug in v2.0!) |
+| 📊 **Accurate Reporting** | Matches Activity Monitor memory values |
 | 🚨 **Severity Levels** | NORMAL → WARNING → CRITICAL → EMERGENCY |
 | 💾 **Safe Backups** | All changes backed up before applying |
 | 📝 **Detailed Logging** | Full audit trail in `~/windowserver-fix/logs/` |
@@ -322,11 +329,15 @@ Validated in [TEST_RESULTS.md](TEST_RESULTS.md).
 
 ```bash
 ./daemon.sh stop
+./uninstall.sh  # Complete removal with optional log backup
+```
+
+Or manually:
+```bash
+./daemon.sh stop
 ./fix.sh restore  # Revert all changes
 rm -rf ~/windowserver-fix  # Delete toolkit
 ```
-
-Or use `uninstall.sh` (coming soon).
 
 ### Does this work on Intel Macs?
 
@@ -347,6 +358,53 @@ If it shows "LEAK_PATTERN_1: High memory with few apps", that's the Sequoia bug.
 ### Can I run this on macOS Sonoma or Ventura?
 
 **Yes!** The toolkit works on macOS 12+ (Monterey and later). Sequoia-specific detection automatically disables on older versions.
+
+---
+
+## ⚠️ Known Limitations
+
+### What This Tool Cannot Do
+
+| Limitation | Why | Workaround |
+|-----------|-----|-----------|
+| **Cannot fix the root cause** | This is an OS-level bug only Apple can fix | Wait for macOS update, use this tool for mitigation meanwhile |
+| **Emergency restart requires sudo** | WindowServer restart needs admin privileges | You'll be prompted for password when needed |
+| **Cannot prevent leak from occurring** | Leak happens at OS level before detection | Tool detects and mitigates, but can't prevent initial leak |
+| **May have false positives** | High memory can be normal for some setups | Adjust thresholds in `daemon.sh` if needed |
+| **WindowServer restart logs you out** | System limitation - WindowServer manages UI | Save work before running emergency restart |
+
+### Current Status (v2.0.0)
+
+**What's Working:**
+- ✅ Memory monitoring (matches Activity Monitor)
+- ✅ Automatic leak detection
+- ✅ Safe mitigation strategies
+- ✅ Emergency restart protection
+- ✅ Detailed logging and tracking
+
+**In Development (v2.1):**
+- 🔄 One-line curl installer
+- 🔄 More display-specific optimizations
+- 🔄 Better Intel Mac compatibility testing
+- 🔄 Menu bar app for easier monitoring
+
+**Known Issues:**
+- Some high-resolution displays may show higher baseline memory (this can be normal)
+- Intel Macs have less testing coverage (community feedback welcome)
+- Leak detection patterns tuned for M1/M2/M3 primarily
+
+### Testing Coverage
+
+**Confirmed Working On:**
+- macOS 15.x (Sequoia) - Primary target
+- M1 Max with dual 5K displays
+- Various window/app configurations
+
+**Needs More Testing:**
+- Intel Macs (2015-2020)
+- macOS 12.x-14.x (Monterey, Ventura, Sonoma)
+- Single display configurations
+- eGPU setups
 
 ---
 
@@ -610,13 +668,11 @@ This tool modifies system preferences. While all changes are:
 ## 🚀 Get Started Now
 
 ```bash
-# Quick install
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/windowserver-fix/main/install.sh | bash
-
-# Or manual install
-git clone https://github.com/YOUR_USERNAME/windowserver-fix.git
+# Manual install (recommended for v2.0)
+git clone https://github.com/chindri-mihai-alexandru/windowserver-fix.git
 cd windowserver-fix
-./daemon.sh start
+chmod +x *.sh
+./install.sh
 ```
 
 **Join the community fixing macOS Sequoia's biggest bug!**
@@ -627,7 +683,7 @@ cd windowserver-fix
 
 **Questions? Issues? Contributions?**
 
-[Open an Issue](https://github.com/YOUR_USERNAME/windowserver-fix/issues) • [Submit a PR](https://github.com/YOUR_USERNAME/windowserver-fix/pulls) • [Discussions](https://github.com/YOUR_USERNAME/windowserver-fix/discussions)
+[Open an Issue](https://github.com/chindri-mihai-alexandru/windowserver-fix/issues) • [Submit a PR](https://github.com/chindri-mihai-alexandru/windowserver-fix/pulls) • [Discussions](https://github.com/chindri-mihai-alexandru/windowserver-fix/discussions)
 
 **Made with ❤️ by the macOS community**
 
