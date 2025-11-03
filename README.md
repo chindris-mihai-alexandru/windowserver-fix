@@ -1,13 +1,13 @@
-# 🚨 WindowServer Fix - macOS Sequoia Memory Leak Monitor & Auto-Fix
+# WindowServer Fix - macOS Sequoia Memory Leak Monitor & Auto-Fix
 
 <div align="center">
 
 **WindowServer eating 5-200GB RAM? System crashing? This tool:**
 
-✅ Detects Sequoia memory leaks in real-time (12GB+ usage detected!)  
-✅ Automatically applies fixes before crashes occur  
-✅ Prevents system freezes with emergency auto-restart  
-✅ Works on all macOS versions (optimized for Sequoia 15.x)
+- Detects Sequoia memory leaks in real-time (12GB+ usage detected!)  
+- Automatically applies fixes before crashes occur  
+- Prevents system freezes with emergency auto-restart  
+- Works on all macOS versions (optimized for Sequoia 15.x)
 
 [![macOS](https://img.shields.io/badge/macOS-13.0%2B-blue.svg)](https://www.apple.com/macos/)
 [![Version](https://img.shields.io/badge/version-2.0-green.svg)](https://github.com/chindris-mihai-alexandru/windowserver-fix)
@@ -19,17 +19,17 @@
 
 ---
 
-## 🆘 The Problem
+## The Problem
 
 macOS Sequoia (15.x) has a **confirmed, critical memory leak** in WindowServer:
 
 | Symptom | Impact |
 |---------|--------|
-| 📈 **5-200GB RAM usage** | Just a few apps can balloon WindowServer memory |
-| 🪟 **~1GB per window** | Each app window leaks another gigabyte |
-| 🚫 **Never released** | Memory stays claimed even after closing apps |
-| 💥 **System crashes** | Mac freezes or force-restarts when RAM exhausted |
-| 🔄 **Persists after reinstall** | Clean OS installs don't fix the issue |
+| **5-200GB RAM usage** | Just a few apps can balloon WindowServer memory |
+| **~1GB per window** | Each app window leaks another gigabyte |
+| **Never released** | Memory stays claimed even after closing apps |
+| **System crashes** | Mac freezes or force-restarts when RAM exhausted |
+| **Persists after reinstall** | Clean OS installs don't fix the issue |
 
 **Real-world example from testing:** M1 Max MacBook Pro with 2 displays and minimal apps open: **12GB WindowServer usage** (should be <500MB).
 
@@ -37,7 +37,7 @@ macOS Sequoia (15.x) has a **confirmed, critical memory leak** in WindowServer:
 
 ---
 
-## 🎯 Status
+## Status
 
 - **Tested on:** macOS 15.1 (Sequoia), M1 Max with dual 5K displays
 - **Stability:** Continuous operation validated
@@ -48,7 +48,7 @@ macOS Sequoia (15.x) has a **confirmed, critical memory leak** in WindowServer:
 
 ---
 
-## ⚡ Quick Install
+## Quick Install
 
 ### Manual Install (Recommended)
 
@@ -61,58 +61,50 @@ chmod +x *.sh
 
 **That's it!** Follow the installer prompts to set up automatic monitoring.
 
-> **Note:** One-line curl install coming in v2.1. For now, use manual installation for safety and transparency.
+> **Note:** Future versions may include one-line curl install. For now, use manual installation for safety and transparency.
 
 ---
 
-## ✨ Features
+## Features
 
-### 📸 Visual Overview
-
-> **Screenshots coming soon!** Examples will include:
-> - Activity Monitor showing WindowServer at 12GB+ memory usage
-> - Terminal output from `./monitor.sh check` with leak detection
-> - Dashboard in action with real-time monitoring
-> - Before/After memory usage comparisons
-
-### 🎯 Core Capabilities
+### Core Capabilities
 
 | Feature | Description |
 |---------|-------------|
-| 🔍 **Real-Time Monitoring** | Tracks WindowServer CPU & memory every 60 seconds |
-| 🤖 **Auto-Fix Daemon** | Applies fixes automatically when thresholds exceeded |
-| 📊 **Accurate Reporting** | Matches Activity Monitor memory values |
-| 🚨 **Severity Levels** | NORMAL → WARNING → CRITICAL → EMERGENCY |
-| 💾 **Safe Backups** | All changes backed up before applying |
-| 📝 **Detailed Logging** | Full audit trail in `~/windowserver-fix/logs/` |
+| **Real-Time Monitoring** | Tracks WindowServer CPU & memory every 60 seconds |
+| **Auto-Fix Daemon** | Applies fixes automatically when thresholds exceeded |
+| **Accurate Reporting** | Matches Activity Monitor memory values |
+| **Severity Levels** | NORMAL → WARNING → CRITICAL → EMERGENCY |
+| **Safe Backups** | All changes backed up before applying |
+| **Detailed Logging** | Full audit trail in `~/windowserver-fix/logs/` |
 
-### 🆕 Sequoia-Specific Detection (2025)
+### Sequoia-Specific Detection (2025)
 
 | Detection | What It Catches |
 |-----------|----------------|
-| 🧪 **Leak Pattern Analysis** | Identifies the ~1GB/window Sequoia leak signature |
-| 📱 **iPhone Mirroring Trigger** | Auto-detects and terminates this major leak cause |
-| 🖥️ **Ultra-Wide Display Warnings** | Flags >5K resolution displays as high-risk |
-| 🎮 **ProMotion (120Hz) Checks** | Monitors high-refresh displays for issues |
-| 🌐 **Browser Compatibility** | Warns about Firefox/Chrome fullscreen video leaks |
-| 💣 **Emergency Auto-Restart** | Prevents crash when memory >20GB (1-hour cooldown) |
-| 📈 **Memory Growth Tracking** | Detects >500MB spikes in 5-minute windows |
+| **Leak Pattern Analysis** | Identifies the ~1GB/window Sequoia leak signature |
+| **iPhone Mirroring Trigger** | Auto-detects and terminates this major leak cause |
+| **Ultra-Wide Display Warnings** | Flags >5K resolution displays as high-risk |
+| **ProMotion (120Hz) Checks** | Monitors high-refresh displays for issues |
+| **Browser Compatibility** | Warns about Firefox/Chrome fullscreen video leaks |
+| **Emergency Auto-Restart** | Prevents crash when memory >20GB (1-hour cooldown) |
+| **Memory Growth Tracking** | Detects >500MB spikes in 5-minute windows |
 
-### 🛡️ Automatic Mitigations
+### Automatic Mitigations
 
 When leak detected, the daemon automatically:
 
-1. ⚠️ **Terminates iPhone Mirroring** (if active)
-2. 🧹 **Clears pasteboard cache**
-3. 🔄 **Restarts Dock** (safe, often helps)
-4. 📢 **Sends macOS notifications** with recommended actions
-5. 🚨 **Force-restarts WindowServer** at EMERGENCY threshold (>20GB)
+1. **Terminates iPhone Mirroring** (if active)
+2. **Clears pasteboard cache**
+3. **Restarts Dock** (safe, often helps)
+4. **Sends macOS notifications** with recommended actions
+5. **Force-restarts WindowServer** at EMERGENCY threshold (>20GB)
 
 All with **cooldown periods** to prevent fix spam (5 min standard, 1 hour emergency).
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Check Current Status
 
@@ -122,12 +114,6 @@ All with **cooldown periods** to prevent fix spam (5 min standard, 1 hour emerge
 
 **Example Output:**
 
-> **Screenshot placeholder:** Terminal showing `./monitor.sh check` with:
-> - CPU & memory stats
-> - Display configuration
-> - Leak detection warnings
-> - Sequoia-specific alerts
-
 ```
 [2025-11-03 15:44:57] === WindowServer Status Check (macOS 15.7.2) ===
 [2025-11-03 15:44:57] CPU Usage: 40.9%
@@ -135,8 +121,8 @@ All with **cooldown periods** to prevent fix spam (5 min standard, 1 hour emerge
 [2025-11-03 15:44:57] Connected Displays: 2
 [2025-11-03 15:44:57] iPhone Mirroring: INACTIVE
 [2025-11-03 15:44:57] WARNING: ULTRAWIDE_DETECTED - Known leak trigger
-[2025-11-03 15:44:57] ⚠️  SEQUOIA MEMORY LEAK DETECTED: High memory with few apps
-[2025-11-03 15:44:57] ❌ CRITICAL: Memory at 12288MB - Sequoia leak confirmed
+[2025-11-03 15:44:57] SEQUOIA MEMORY LEAK DETECTED: High memory with few apps
+[2025-11-03 15:44:57] CRITICAL: Memory at 12288MB - Sequoia leak confirmed
 ```
 
 ### Start Background Monitoring
@@ -181,7 +167,7 @@ The daemon will now:
 
 ---
 
-## 🔧 How It Works
+## How It Works
 
 ### The Critical Bug Fix (v2.0)
 
@@ -190,13 +176,13 @@ Previous versions **underreported memory by 60x** (showing 200MB when actually 1
 **Before (Broken):**
 ```bash
 ps aux | grep WindowServer  # Shows RSS (physical RAM only)
-# Output: 203 MB ❌ WRONG
+# Output: 203 MB - WRONG
 ```
 
 **After (Fixed):**
 ```bash
 top -l 1 -stats mem -pid $(pgrep WindowServer)  # Matches Activity Monitor
-# Output: 12,288 MB ✅ CORRECT
+# Output: 12,288 MB - CORRECT
 ```
 
 **Why this matters:** WindowServer uses massive **virtual memory** for GPU buffers and window compositing. Activity Monitor shows the **total memory footprint** (what users see and care about). We now match this exactly.
@@ -205,10 +191,10 @@ top -l 1 -stats mem -pid $(pgrep WindowServer)  # Matches Activity Monitor
 
 | Level | Memory | Action |
 |-------|--------|--------|
-| 🟢 **NORMAL** | <500 MB | No action needed |
-| 🟡 **WARNING** | >2 GB | Monitor closely, log pattern |
-| 🟠 **CRITICAL** | >5 GB | Apply automatic fixes |
-| 🔴 **EMERGENCY** | >20 GB | Force-restart WindowServer |
+| **NORMAL** | <500 MB | No action needed |
+| **WARNING** | >2 GB | Monitor closely, log pattern |
+| **CRITICAL** | >5 GB | Apply automatic fixes |
+| **EMERGENCY** | >20 GB | Force-restart WindowServer |
 
 ### Leak Pattern Detection
 
@@ -223,14 +209,14 @@ The toolkit identifies Sequoia leaks by:
 
 All fixes are **non-destructive** and **logged**:
 
-- ✅ Safe: Restart Dock, clear pasteboard, terminate iPhone Mirroring
-- ✅ Reversible: All settings backed up to `backups/backup_TIMESTAMP/`
-- ✅ Transparent: Full audit trail in `logs/` directory
-- ⚠️ Requires confirmation: WindowServer restart (logs you out)
+- Safe: Restart Dock, clear pasteboard, terminate iPhone Mirroring
+- Reversible: All settings backed up to `backups/backup_TIMESTAMP/`
+- Transparent: Full audit trail in `logs/` directory
+- Requires confirmation: WindowServer restart (logs you out)
 
 ---
 
-## 📊 Monitoring & Logs
+## Monitoring & Logs
 
 ### Log Files
 
@@ -264,7 +250,7 @@ Compares toolkit reporting with Activity Monitor for 10 cycles. Should show **10
 
 ---
 
-## 🎯 Common Scenarios
+## Common Scenarios
 
 ### Scenario 1: Just Installed, Want Peace of Mind
 
@@ -305,7 +291,7 @@ pkill "iPhone Mirroring"
 
 ---
 
-## ❓ FAQ
+## FAQ
 
 ### Is this safe to use?
 
@@ -320,10 +306,10 @@ See [SECURITY.md](SECURITY.md) for details on what the toolkit does/doesn't do.
 ### Will this fix the Sequoia leak permanently?
 
 **No.** This is an **OS-level bug** that only Apple can fix through a macOS update. This toolkit provides:
-- ✅ Detection when leak occurs
-- ✅ Automatic mitigation to delay crashes
-- ✅ Emergency restart before system fails
-- ❌ Cannot prevent the leak from happening
+- Detection when leak occurs
+- Automatic mitigation to delay crashes
+- Emergency restart before system fails
+- Cannot prevent the leak from happening
 
 ### Does this require sudo/root access?
 
@@ -357,8 +343,8 @@ rm -rf ~/windowserver-fix  # Delete toolkit
 ### Does this work on Intel Macs?
 
 **Yes!** Tested on:
-- ✅ Apple Silicon (M1/M2/M3)
-- ✅ Intel (2015-2020 models)
+- Apple Silicon (M1/M2/M3)
+- Intel (2015-2020 models)
 
 ### My WindowServer is using 12GB but I only have a few apps open. Is this the leak?
 
@@ -376,7 +362,7 @@ If it shows "LEAK_PATTERN_1: High memory with few apps", that's the Sequoia bug.
 
 ---
 
-## ⚠️ Known Limitations
+## Known Limitations
 
 ### What This Tool Cannot Do
 
@@ -391,17 +377,17 @@ If it shows "LEAK_PATTERN_1: High memory with few apps", that's the Sequoia bug.
 ### Current Status (v2.0.0)
 
 **What's Working:**
-- ✅ Memory monitoring (matches Activity Monitor)
-- ✅ Automatic leak detection
-- ✅ Safe mitigation strategies
-- ✅ Emergency restart protection
-- ✅ Detailed logging and tracking
+- Memory monitoring (matches Activity Monitor)
+- Automatic leak detection
+- Safe mitigation strategies
+- Emergency restart protection
+- Detailed logging and tracking
 
-**In Development (v2.1):**
-- 🔄 One-line curl installer
-- 🔄 More display-specific optimizations
-- 🔄 Better Intel Mac compatibility testing
-- 🔄 Menu bar app for easier monitoring
+**Future Considerations:**
+- One-line curl installer
+- More display-specific optimizations
+- Better Intel Mac compatibility testing
+- Menu bar app for easier monitoring
 
 **Known Issues:**
 - Some high-resolution displays may show higher baseline memory (this can be normal)
@@ -423,7 +409,7 @@ If it shows "LEAK_PATTERN_1: High memory with few apps", that's the Sequoia bug.
 
 ---
 
-## 🩺 Troubleshooting
+## Troubleshooting
 
 ### Issue: Daemon says "Fixes needed but in cooldown period"
 
@@ -464,7 +450,7 @@ MEM_THRESHOLD_CRITICAL=10240  # Change 5120 → 10240 (10GB)
 
 ---
 
-## 🏆 Why This Toolkit Exists
+## Why This Toolkit Exists
 
 ### The Backstory
 
@@ -489,7 +475,7 @@ In **November 2025**, macOS Sequoia users started reporting catastrophic WindowS
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Found a fix that works? Spotted a bug? **We want your help!**
 
@@ -502,17 +488,17 @@ Found a fix that works? Spotted a bug? **We want your help!**
 
 ### Contribution Ideas
 
-- 🐛 Test on different Mac models (Intel vs Apple Silicon)
-- 📊 Share your WindowServer memory usage data
-- 🧪 Validate fixes on different macOS versions
-- 📝 Improve documentation and examples
-- 🌍 Translate README to other languages
+- Test on different Mac models (Intel vs Apple Silicon)
+- Share your WindowServer memory usage data
+- Validate fixes on different macOS versions
+- Improve documentation and examples
+- Translate README to other languages
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
-## 📚 Research & Data
+## Research & Data
 
 ### 2025 Sequoia Leak Statistics
 
@@ -547,17 +533,17 @@ Based on November 2025 community reports:
 
 ---
 
-## 🛡️ Security & Privacy
+## Security & Privacy
 
 **This toolkit:**
 
-✅ **DOES:**
+**DOES:**
 - Monitor WindowServer memory/CPU locally
 - Apply safe system preference changes
 - Store logs in your home directory only
 - Restart Dock (harmless, user-level process)
 
-❌ **DOES NOT:**
+**DOES NOT:**
 - Require root (except optional emergency restart)
 - Modify system files
 - Send data off your machine
@@ -568,7 +554,7 @@ See [SECURITY.md](SECURITY.md) for complete transparency.
 
 ---
 
-## 📦 What's Included
+## What's Included
 
 ```
 windowserver-fix/
@@ -594,7 +580,7 @@ windowserver-fix/
 
 ---
 
-## 🎓 Technical Details
+## Technical Details
 
 ### Memory Reporting Method (v2.0 Fix)
 
@@ -642,7 +628,7 @@ def is_sequoia_leak(mem_mb, app_count, growth_rate):
 
 ---
 
-## 📜 License
+## License
 
 **MIT License** - Feel free to use, modify, and distribute.
 
@@ -650,9 +636,9 @@ See [LICENSE](LICENSE) for full text.
 
 ---
 
-## 🙏 Credits
+## Credits
 
-**Created by the macOS community** to address longstanding WindowServer issues that Apple has not officially resolved.
+**Developed and maintained by Mihai Chindris**
 
 **v2.0 (November 2025):**
 - Enhanced with Sequoia (15.x) memory leak detection
@@ -667,12 +653,22 @@ See [LICENSE](LICENSE) for full text.
 
 ---
 
-## ⚠️ Disclaimer
+## Support This Project
+
+If this toolkit has helped you avoid system crashes and saved you time, consider buying me a coffee:
+
+**[Buy Me a Coffee](https://buymeacoffee.com/mihai.chindris)**
+
+Your support helps maintain and improve this tool for the entire macOS community.
+
+---
+
+## Disclaimer
 
 This tool modifies system preferences. While all changes are:
-- ✅ Reversible
-- ✅ Backed up
-- ✅ Non-destructive
+- Reversible
+- Backed up
+- Non-destructive
 
 **Use at your own risk.** Always backup your data before making system changes.
 
@@ -680,33 +676,33 @@ This tool modifies system preferences. While all changes are:
 
 ---
 
-## 🗺️ Roadmap (v2.1+)
+## Roadmap
 
-What's coming next (community input welcome!):
+Future considerations (community input welcome!)
 
-### 🔥 High Priority
-- [ ] **One-line curl installer** - Safe remote installation script
-- [ ] **Menu bar app** - Real-time monitoring without terminal
-- [ ] **Intel Mac compatibility testing** - Expand hardware coverage
-- [ ] **Display-specific optimizations** - Better ultra-wide/ProMotion support
+### High Priority
+- **One-line curl installer** - Safe remote installation script
+- **Menu bar app** - Real-time monitoring without terminal
+- **Intel Mac compatibility testing** - Expand hardware coverage
+- **Display-specific optimizations** - Better ultra-wide/ProMotion support
 
-### 📊 Medium Priority
-- [ ] **Homebrew formula** - `brew install windowserver-fix`
-- [ ] **Notification improvements** - macOS native alerts with actions
-- [ ] **Dashboard with graphs** - Historical memory visualization
-- [ ] **Auto-update mechanism** - Stay current with latest fixes
+### Medium Priority
+- **Homebrew formula** - `brew install windowserver-fix`
+- **Notification improvements** - macOS native alerts with actions
+- **Dashboard with graphs** - Historical memory visualization
+- **Auto-update mechanism** - Stay current with latest fixes
 
-### 💡 Nice to Have
-- [ ] **Export metrics to CSV** - Enhanced data analysis
-- [ ] **Activity Monitor integration** - Native UI plugin
-- [ ] **Predictive leak detection** - ML-based early warning
-- [ ] **Community leak database** - Crowdsourced pattern sharing
+### Nice to Have
+- **Export metrics to CSV** - Enhanced data analysis
+- **Activity Monitor integration** - Native UI plugin
+- **Predictive leak detection** - ML-based early warning
+- **Community leak database** - Crowdsourced pattern sharing
 
 **Want to contribute?** Check [CONTRIBUTING.md](CONTRIBUTING.md) or [open an issue](https://github.com/chindri-mihai-alexandru/windowserver-fix/issues) with your ideas!
 
 ---
 
-## 🚀 Get Started Now
+## Get Started Now
 
 ```bash
 # Manual install (recommended for v2.0)
@@ -726,6 +722,6 @@ chmod +x *.sh
 
 [Open an Issue](https://github.com/chindri-mihai-alexandru/windowserver-fix/issues) • [Submit a PR](https://github.com/chindri-mihai-alexandru/windowserver-fix/pulls) • [Discussions](https://github.com/chindri-mihai-alexandru/windowserver-fix/discussions)
 
-**Made with ❤️ by the macOS community**
+**Developed and maintained by Mihai Chindris**
 
 </div>

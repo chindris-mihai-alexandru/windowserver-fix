@@ -1,10 +1,10 @@
-# 🆕 First Time Using WindowServer Fix?
+# First Time Using WindowServer Fix?
 
 **Welcome!** This guide walks you through everything you need to know to get started.
 
 ---
 
-## 📦 Step 1: I Just Cloned the Repo, What Now?
+## Step 1: I Just Cloned the Repo, What Now?
 
 ### Quick Setup (2 minutes)
 
@@ -23,17 +23,17 @@ chmod +x *.sh
 
 ---
 
-## 🔍 Step 2: How Do I Know If I Have the Leak?
+## Step 2: How Do I Know If I Have the Leak?
 
 ### Memory Usage Guidelines
 
 | Memory Level | Status | What It Means |
 |-------------|--------|---------------|
-| **<500 MB** | 🟢 **NORMAL** | All good! No action needed |
-| **500MB - 2GB** | 🟡 **ELEVATED** | Monitor, but typically normal for multi-display setups |
-| **2GB - 5GB** | 🟠 **CONCERNING** | Likely a leak - consider running fixes |
-| **5GB - 20GB** | 🔴 **CRITICAL** | Definite leak - run fixes immediately |
-| **>20GB** | 🚨 **EMERGENCY** | System crash imminent - restart WindowServer |
+| **<500 MB** | **NORMAL** | All good! No action needed |
+| **500MB - 2GB** | **ELEVATED** | Monitor, but typically normal for multi-display setups |
+| **2GB - 5GB** | **CONCERNING** | Likely a leak - consider running fixes |
+| **5GB - 20GB** | **CRITICAL** | Definite leak - run fixes immediately |
+| **>20GB** | **EMERGENCY** | System crash imminent - restart WindowServer |
 
 ### Context Matters
 
@@ -57,16 +57,16 @@ chmod +x *.sh
 
 **Example output if you have the leak:**
 ```
-✅ LEAK_PATTERN_1: High memory usage with minimal apps (12288MB with estimated 8 windows)
-⚠️  TRIGGER_DETECTED: ULTRAWIDE_DETECTED - Ultra-wide/high-res display connected
-❌ CRITICAL: Memory at 12288MB exceeds critical threshold (>5GB)
+LEAK_PATTERN_1: High memory usage with minimal apps (12288MB with estimated 8 windows)
+TRIGGER_DETECTED: ULTRAWIDE_DETECTED - Ultra-wide/high-res display connected
+CRITICAL: Memory at 12288MB exceeds critical threshold (>5GB)
 
 VERDICT: SEQUOIA LEAK CONFIRMED
 ```
 
 ---
 
-## 🛠️ Step 3: What Should I Do If Leak Is Detected?
+## Step 3: What Should I Do If Leak Is Detected?
 
 ### Option A: Install the Automatic Daemon (Recommended)
 
@@ -128,11 +128,11 @@ The daemon will now:
 ./fix.sh restart-windowserver
 ```
 
-⚠️ **WARNING:** This logs you out! Save all work first.
+**WARNING:** This logs you out! Save all work first.
 
 ---
 
-## ⏰ Step 4: When Should I Restart WindowServer?
+## Step 4: When Should I Restart WindowServer?
 
 ### Decision Matrix
 
@@ -167,7 +167,7 @@ The daemon will now:
 
 ---
 
-## 🎛️ Step 5: Understanding Your Options
+## Step 5: Understanding Your Options
 
 ### Monitoring Options
 
@@ -197,7 +197,7 @@ The daemon will now:
 
 ---
 
-## 🔧 Step 6: Customizing Thresholds
+## Step 6: Customizing Thresholds
 
 If you have a high-end setup (dual 5K displays, etc.) and getting false positives:
 
@@ -223,7 +223,7 @@ MEM_THRESHOLD_EMERGENCY=25600 # 25GB
 
 ---
 
-## 📊 Step 7: Where Are My Logs?
+## Step 7: Where Are My Logs?
 
 All logs are stored in: `~/windowserver-fix/logs/`
 
@@ -255,7 +255,7 @@ cat ~/windowserver-fix/logs/memory_history.txt
 
 ---
 
-## ❓ Common Questions
+## Common Questions
 
 ### Q: Is this safe?
 **A:** Yes! All fixes are:
@@ -266,10 +266,10 @@ cat ~/windowserver-fix/logs/memory_history.txt
 
 ### Q: Will this permanently fix the leak?
 **A:** No. This is an OS-level bug only Apple can fix. This tool provides:
-- ✅ Detection when leak occurs
-- ✅ Automatic mitigation to delay crashes
-- ✅ Emergency restart before system failure
-- ❌ Cannot prevent the leak from happening
+- Detection when leak occurs
+- Automatic mitigation to delay crashes
+- Emergency restart before system failure
+- Cannot prevent the leak from happening
 
 ### Q: Does this slow down my Mac?
 **A:** No. The daemon uses:
@@ -302,7 +302,7 @@ Then it might just be your display configuration. Monitor for growth over time -
 
 ---
 
-## 🆘 Getting Help
+## Getting Help
 
 ### Still Stuck?
 
@@ -321,7 +321,7 @@ Then it might just be your display configuration. Monitor for growth over time -
 
 ---
 
-## 🎯 Quick Start Checklist
+## Quick Start Checklist
 
 Use this checklist for your first time:
 
@@ -337,7 +337,7 @@ Use this checklist for your first time:
 
 ---
 
-## 🚀 You're All Set!
+## You're All Set!
 
 The daemon is now monitoring 24/7. It will:
 - Check WindowServer every 60 seconds
@@ -350,5 +350,3 @@ The daemon is now monitoring 24/7. It will:
 ---
 
 **Need more details?** See the [main README](README.md) for comprehensive documentation.
-
-**Happy monitoring!** 🎉

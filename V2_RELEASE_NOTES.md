@@ -1,7 +1,7 @@
 # WindowServer Fix v2.0.0 - Release Notes
 ## November 3, 2025
 
-## 🚨 Critical Update: macOS Sequoia Memory Leak Support
+## Critical Update: macOS Sequoia Memory Leak Support
 
 This major release adds comprehensive detection and mitigation for the **critical macOS Sequoia (15.x) memory leak bug** that causes WindowServer to consume 5-200GB of RAM.
 
