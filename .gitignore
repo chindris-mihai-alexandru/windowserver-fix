@@ -1,0 +1,25 @@
+# Logs
+logs/
+*.log
+
+# Backups
+backups/
+
+# Runtime files
+.daemon.pid
+.last_backup
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.temp
+
+# CSV data (optional - remove this line if you want to track metrics)
+metrics.csv
+
+# User-specific configuration (if added later)
+config.local.sh
