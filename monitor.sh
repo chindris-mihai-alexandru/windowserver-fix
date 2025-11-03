@@ -1,26 +1,112 @@
 #!/bin/bash
 
-# WindowServer Monitor Script
-# Monitors WindowServer CPU and memory usage and logs detailed information
+# WindowServer Monitor Script v2.0
+# Monitors WindowServer CPU and memory usage with macOS Sequoia (15.x) leak detection
+# Updated November 2025 for current WindowServer memory leak issues
 
 LOG_DIR="$HOME/windowserver-fix/logs"
 LOG_FILE="$LOG_DIR/windowserver_monitor_$(date +%Y%m%d).log"
 METRICS_FILE="$LOG_DIR/metrics.csv"
+HISTORY_FILE="$LOG_DIR/memory_history.txt"
 
-# Thresholds
+# 2025 Sequoia-Specific Thresholds
 CPU_THRESHOLD=50.0
-MEM_THRESHOLD_MB=500
+MEM_THRESHOLD_NORMAL=500      # Normal: <500MB for basic usage
+MEM_THRESHOLD_WARNING=2048    # Warning: >2GB with few apps (Sequoia leak indicator)
+MEM_THRESHOLD_CRITICAL=5120   # Critical: >5GB (Sequoia confirmed leak)
+MEM_THRESHOLD_EMERGENCY=20480 # Emergency: >20GB (system crash imminent)
 
 # Create log directory
 mkdir -p "$LOG_DIR"
 
 # Initialize CSV if it doesn't exist
 if [ ! -f "$METRICS_FILE" ]; then
-    echo "timestamp,cpu_percent,mem_mb,mem_compressed_mb,open_files,display_count,resolution" > "$METRICS_FILE"
+    echo "timestamp,cpu_percent,mem_mb,mem_compressed_mb,open_files,display_count,resolution,iphone_mirror,app_count,severity" > "$METRICS_FILE"
 fi
+
+# Initialize memory history
+touch "$HISTORY_FILE"
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+}
+
+get_macos_version() {
+    sw_vers -productVersion | cut -d. -f1
+}
+
+is_sequoia() {
+    version=$(get_macos_version)
+    [ "$version" -ge 15 ]
+}
+
+detect_iphone_mirroring() {
+    pgrep -q "iPhone Mirroring" && echo "ACTIVE" || echo "INACTIVE"
+}
+
+detect_ultrawide_display() {
+    system_profiler SPDisplaysDataType | grep "Resolution:" | awk '{
+        width = $2
+        if (width >= 5120) print "ULTRAWIDE_DETECTED"
+    }' | head -1
+}
+
+detect_promotion() {
+    system_profiler SPDisplaysDataType | grep -q "120 Hz" && echo "ENABLED" || echo "DISABLED"
+}
+
+count_app_windows() {
+    # Count visible application windows (excluding WindowServer itself)
+    windows=$(osascript -e 'tell application "System Events" to count (every window of every process whose background only is false)' 2>/dev/null)
+    echo "${windows:-0}"
+}
+
+get_memory_growth_rate() {
+    # Calculate memory growth rate from last 5 entries
+    if [ ! -f "$HISTORY_FILE" ]; then
+        echo "0"
+        return
+    fi
+    
+    tail -5 "$HISTORY_FILE" | awk '{
+        if (NR==1) first=$2
+        if (NR==5) last=$2
+    }
+    END {
+        if (first > 0 && last > 0) {
+            growth = last - first
+            print growth
+        } else {
+            print 0
+        }
+    }'
+}
+
+detect_sequoia_leak_pattern() {
+    mem_mb=$1
+    app_count=$2
+    growth_rate=$(get_memory_growth_rate)
+    
+    # Pattern 1: >2GB with few apps (< 10 windows)
+    if [ "$mem_mb" -gt 2048 ] && [ "$app_count" -lt 10 ]; then
+        echo "LEAK_PATTERN_1: High memory with few apps"
+        return 1
+    fi
+    
+    # Pattern 2: Continuous growth (>500MB increase in last 5 checks)
+    if [ "$growth_rate" -gt 500 ]; then
+        echo "LEAK_PATTERN_2: Rapid memory growth detected (+${growth_rate}MB)"
+        return 1
+    fi
+    
+    # Pattern 3: Critical threshold exceeded
+    if [ "$mem_mb" -gt "$MEM_THRESHOLD_CRITICAL" ]; then
+        echo "LEAK_PATTERN_3: Critical Sequoia leak threshold exceeded"
+        return 1
+    fi
+    
+    echo "NO_LEAK"
+    return 0
 }
 
 get_windowserver_stats() {
@@ -32,7 +118,7 @@ get_display_info() {
 }
 
 check_windowserver() {
-    log "=== WindowServer Status Check ==="
+    log "=== WindowServer Status Check (macOS $(sw_vers -productVersion)) ==="
     
     # Get WindowServer stats
     stats=$(get_windowserver_stats)
@@ -54,11 +140,26 @@ check_windowserver() {
     # Get current resolution
     resolution=$(system_profiler SPDisplaysDataType | grep "Resolution:" | head -1 | awk '{print $2, $3, $4}')
     
+    # 2025 Enhanced Detection
+    iphone_mirror=$(detect_iphone_mirroring)
+    app_count=$(count_app_windows)
+    ultrawide=$(detect_ultrawide_display)
+    promotion=$(detect_promotion)
+    
     log "CPU Usage: ${cpu}%"
     log "Memory Usage: ${mem_mb}MB (${mem_percent}%)"
     log "Open Files: $open_files"
     log "Connected Displays: $display_count"
     log "Primary Resolution: $resolution"
+    log "App Windows Open: $app_count"
+    
+    # Sequoia-specific warnings
+    if is_sequoia; then
+        log "macOS Sequoia Detected - Enhanced leak monitoring active"
+        log "iPhone Mirroring: $iphone_mirror"
+        [ -n "$ultrawide" ] && log "WARNING: $ultrawide - Known leak trigger"
+        log "ProMotion: $promotion"
+    fi
     
     # Check for memory leaks (compressed memory)
     vm_stat_output=$(vm_stat)
@@ -66,27 +167,64 @@ check_windowserver() {
     compressed_mb=$((compressed_mb * 4096 / 1024 / 1024))
     log "Compressed Memory: ${compressed_mb}MB"
     
+    # Store memory history for growth tracking
+    echo "$(date +%s) $mem_mb" >> "$HISTORY_FILE"
+    
+    # Keep only last 100 entries
+    tail -100 "$HISTORY_FILE" > "$HISTORY_FILE.tmp" && mv "$HISTORY_FILE.tmp" "$HISTORY_FILE"
+    
+    # Determine severity level
+    severity="NORMAL"
+    if [ "$mem_mb" -gt "$MEM_THRESHOLD_EMERGENCY" ]; then
+        severity="EMERGENCY"
+    elif [ "$mem_mb" -gt "$MEM_THRESHOLD_CRITICAL" ]; then
+        severity="CRITICAL"
+    elif [ "$mem_mb" -gt "$MEM_THRESHOLD_WARNING" ]; then
+        severity="WARNING"
+    fi
+    
     # Save metrics to CSV
     timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "$timestamp,$cpu,$mem_mb,$compressed_mb,$open_files,$display_count,\"$resolution\"" >> "$METRICS_FILE"
+    echo "$timestamp,$cpu,$mem_mb,$compressed_mb,$open_files,$display_count,\"$resolution\",$iphone_mirror,$app_count,$severity" >> "$METRICS_FILE"
+    
+    # Check for Sequoia leak pattern
+    if is_sequoia; then
+        leak_result=$(detect_sequoia_leak_pattern "$mem_mb" "$app_count")
+        if [ "$leak_result" != "NO_LEAK" ]; then
+            log "⚠️  SEQUOIA MEMORY LEAK DETECTED: $leak_result"
+            log "💡 Recommendation: Run ./fix.sh restart-windowserver or close iPhone Mirroring"
+        fi
+    fi
     
     # Check if thresholds exceeded
     if (( $(echo "$cpu > $CPU_THRESHOLD" | bc -l) )); then
         log "WARNING: CPU usage exceeds threshold (${cpu}% > ${CPU_THRESHOLD}%)"
-        return 2
     fi
     
-    if [ "$mem_mb" -gt "$MEM_THRESHOLD_MB" ]; then
-        log "WARNING: Memory usage exceeds threshold (${mem_mb}MB > ${MEM_THRESHOLD_MB}MB)"
-        return 3
-    fi
-    
-    log "Status: Normal"
-    return 0
+    case "$severity" in
+        EMERGENCY)
+            log "🚨 EMERGENCY: Memory at ${mem_mb}MB - System crash imminent!"
+            log "ACTION REQUIRED: Restart WindowServer immediately"
+            return 4
+            ;;
+        CRITICAL)
+            log "❌ CRITICAL: Memory at ${mem_mb}MB - Sequoia leak confirmed"
+            log "ACTION: Run ./fix.sh restart-windowserver"
+            return 3
+            ;;
+        WARNING)
+            log "⚠️  WARNING: Memory at ${mem_mb}MB - Monitoring for leak pattern"
+            return 2
+            ;;
+        *)
+            log "✅ Status: Normal"
+            return 0
+            ;;
+    esac
 }
 
 capture_diagnostic_info() {
-    log "=== Capturing Diagnostic Information ==="
+    log "=== Capturing Diagnostic Information (2025 Enhanced) ==="
     
     diagnostic_file="$LOG_DIR/diagnostic_$(date +%Y%m%d_%H%M%S).txt"
     
@@ -94,6 +232,18 @@ capture_diagnostic_info() {
         echo "=== System Info ==="
         sw_vers
         sysctl -n machdep.cpu.brand_string
+        
+        echo -e "\n=== macOS Sequoia Leak Detection ==="
+        if is_sequoia; then
+            echo "macOS Sequoia Detected: YES"
+            echo "iPhone Mirroring Status: $(detect_iphone_mirroring)"
+            echo "ProMotion Status: $(detect_promotion)"
+            echo "Ultra-wide Display: $(detect_ultrawide_display)"
+            echo "App Windows Count: $(count_app_windows)"
+            echo "Memory Growth Rate: $(get_memory_growth_rate)MB"
+        else
+            echo "macOS Sequoia: NO (Version $(get_macos_version))"
+        fi
         
         echo -e "\n=== Display Configuration ==="
         system_profiler SPDisplaysDataType
@@ -106,6 +256,20 @@ capture_diagnostic_info() {
         
         echo -e "\n=== Memory Statistics ==="
         vm_stat
+        
+        echo -e "\n=== Top Memory Consuming Apps ==="
+        ps aux | sort -rk 4 | head -20
+        
+        echo -e "\n=== Problematic Processes (Known Leak Triggers) ==="
+        echo "Firefox: $(pgrep -q Firefox && echo 'RUNNING' || echo 'NOT RUNNING')"
+        echo "Chrome: $(pgrep -q "Google Chrome" && echo 'RUNNING' || echo 'NOT RUNNING')"
+        echo "Safari: $(pgrep -q Safari && echo 'RUNNING' || echo 'NOT RUNNING')"
+        echo "iPhone Mirroring: $(detect_iphone_mirroring)"
+        echo "OBS: $(pgrep -q obs && echo 'RUNNING' || echo 'NOT RUNNING')"
+        echo "Screen Recording: $(pgrep -q screencapture && echo 'ACTIVE' || echo 'INACTIVE')"
+        
+        echo -e "\n=== Memory History (Last 10 samples) ==="
+        tail -10 "$HISTORY_FILE"
         
         echo -e "\n=== Power Management ==="
         pmset -g

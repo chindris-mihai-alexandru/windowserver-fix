@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# WindowServer Fix Script
-# Implements various mitigation strategies for WindowServer high CPU/memory usage
+# WindowServer Fix Script v2.0
+# Implements mitigation strategies for WindowServer high CPU/memory usage
+# Updated November 2025 for macOS Sequoia (15.x) memory leak issues
 
 set -e
 
@@ -40,6 +41,119 @@ check_sudo() {
         log_error "Do not run this script with sudo. It will ask for password when needed."
         exit 1
     fi
+}
+
+# 2025 macOS Detection Functions
+get_macos_version() {
+    sw_vers -productVersion | cut -d. -f1
+}
+
+is_sequoia() {
+    version=$(get_macos_version)
+    [ "$version" -ge 15 ]
+}
+
+detect_iphone_mirroring() {
+    pgrep -q "iPhone Mirroring" && echo "ACTIVE" || echo "INACTIVE"
+}
+
+kill_iphone_mirroring() {
+    log_info "Checking for iPhone Mirroring process..."
+    
+    if pgrep -q "iPhone Mirroring"; then
+        log_warning "iPhone Mirroring is active - known Sequoia leak trigger"
+        read -p "Kill iPhone Mirroring process? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            pkill "iPhone Mirroring"
+            log_success "iPhone Mirroring terminated"
+        else
+            log_info "Skipping iPhone Mirroring termination"
+        fi
+    else
+        log_success "iPhone Mirroring not running"
+    fi
+}
+
+disable_iphone_mirroring_feature() {
+    if is_sequoia; then
+        log_info "Disabling iPhone Mirroring feature (Sequoia)..."
+        
+        # Note: There's no direct defaults command to disable iPhone Mirroring
+        # User must do this manually in System Settings
+        log_warning "To permanently disable iPhone Mirroring:"
+        log_info "  1. Go to System Settings > General > AirDrop & Handoff"
+        log_info "  2. Turn off 'iPhone Mirroring'"
+        log_info "  3. Restart your Mac"
+    fi
+}
+
+check_promotion_displays() {
+    log_info "Checking for ProMotion displays..."
+    
+    if system_profiler SPDisplaysDataType | grep -q "120 Hz"; then
+        log_warning "ProMotion (120Hz) display detected"
+        log_info "If experiencing issues, try disabling ProMotion:"
+        log_info "  System Settings > Displays > Refresh Rate > 60 Hz"
+    else
+        log_success "No ProMotion displays detected"
+    fi
+}
+
+check_ultrawide_displays() {
+    log_info "Checking for ultra-wide/high-res displays..."
+    
+    ultrawide=$(system_profiler SPDisplaysDataType | grep "Resolution:" | awk '{
+        width = $2
+        if (width >= 5120) print width " x " $4 " (ULTRA-WIDE)"
+    }')
+    
+    if [ -n "$ultrawide" ]; then
+        log_warning "Ultra-wide display detected: $ultrawide"
+        log_warning "Ultra-wide displays (>5K) are HIGH-RISK leak triggers in Sequoia"
+        log_info "Recommendation: Use default (non-scaled) resolution"
+        log_info "  System Settings > Displays > Use 'Default for display'"
+    else
+        log_success "No ultra-wide displays detected"
+    fi
+}
+
+check_problematic_browsers() {
+    log_info "Checking for browsers with known video playback issues..."
+    
+    firefox_running=$(pgrep -q Firefox && echo "YES" || echo "NO")
+    chrome_running=$(pgrep -q "Google Chrome" && echo "YES" || echo "NO")
+    
+    if [ "$firefox_running" = "YES" ]; then
+        log_warning "Firefox is running - fullscreen video can trigger leaks"
+        log_info "Consider using Safari for video playback instead"
+    fi
+    
+    if [ "$chrome_running" = "YES" ]; then
+        log_warning "Chrome is running - fullscreen video can trigger leaks"
+        log_info "Consider using Safari for video playback instead"
+    fi
+    
+    if [ "$firefox_running" = "NO" ] && [ "$chrome_running" = "NO" ]; then
+        log_success "No problematic browsers detected"
+    fi
+}
+
+sequoia_specific_checks() {
+    if ! is_sequoia; then
+        return 0
+    fi
+    
+    log_info "=== macOS Sequoia (15.x) Leak Detection ==="
+    log_warning "Running Sequoia $(sw_vers -productVersion) - enhanced leak monitoring active"
+    
+    kill_iphone_mirroring
+    disable_iphone_mirroring_feature
+    check_promotion_displays
+    check_ultrawide_displays
+    check_problematic_browsers
+    
+    log_info "=== Sequoia Checks Complete ==="
 }
 
 backup_settings() {
@@ -170,17 +284,30 @@ restart_windowserver() {
     echo
     
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        log_info "Restarting WindowServer..."
+        log_info "Restarting WindowServer in 3 seconds..."
+        sleep 1 && echo "3..." && sleep 1 && echo "2..." && sleep 1 && echo "1..."
         sudo killall -HUP WindowServer
     else
         log_info "Skipping WindowServer restart. Changes will take effect after logout/restart."
     fi
 }
 
+emergency_restart_windowserver() {
+    log_error "EMERGENCY: Forcing WindowServer restart to prevent system crash"
+    log_warning "This will immediately log you out!"
+    
+    # No confirmation in emergency mode
+    sudo killall -HUP WindowServer
+}
+
 apply_all_fixes() {
-    log_info "=== Starting WindowServer Fix Process ==="
+    log_info "=== Starting WindowServer Fix Process (v2.0 - Nov 2025) ==="
+    log_info "macOS Version: $(sw_vers -productVersion)"
     
     backup_settings
+    
+    # Run Sequoia-specific checks first
+    sequoia_specific_checks
     
     fix_transparency
     fix_dock_animations
@@ -194,6 +321,15 @@ apply_all_fixes() {
     killall Dock 2>/dev/null || true
     
     log_success "=== All fixes applied successfully ==="
+    
+    if is_sequoia; then
+        log_warning "Sequoia-specific recommendations:"
+        log_info "  • Keep macOS updated (Apple is working on leak fixes)"
+        log_info "  • Avoid iPhone Mirroring if possible"
+        log_info "  • Use Safari instead of Firefox/Chrome for video"
+        log_info "  • Monitor memory with: ./monitor.sh monitor"
+    fi
+    
     log_info "Some changes require a logout/restart to take full effect."
     
     restart_windowserver
@@ -201,6 +337,7 @@ apply_all_fixes() {
 
 show_current_status() {
     log_info "=== Current WindowServer Status ==="
+    log_info "macOS Version: $(sw_vers -productVersion)"
     
     stats=$(ps aux | grep "WindowServer" | grep -v grep | awk '{print $3, $4, $6}')
     cpu=$(echo "$stats" | awk '{print $1}')
@@ -210,6 +347,24 @@ show_current_status() {
     
     echo "CPU Usage: ${cpu}%"
     echo "Memory Usage: ${mem_mb}MB (${mem_percent}%)"
+    
+    # 2025 Sequoia Status
+    if is_sequoia; then
+        echo -e "\nmacOS Sequoia Leak Detection:"
+        echo "  iPhone Mirroring: $(detect_iphone_mirroring)"
+        echo "  ProMotion: $(system_profiler SPDisplaysDataType | grep -q '120 Hz' && echo 'ENABLED' || echo 'DISABLED')"
+        
+        # Memory severity assessment
+        if [ "$mem_mb" -gt 20480 ]; then
+            echo -e "  ${RED}Status: EMERGENCY (${mem_mb}MB) - Restart recommended!${NC}"
+        elif [ "$mem_mb" -gt 5120 ]; then
+            echo -e "  ${RED}Status: CRITICAL (${mem_mb}MB) - Leak detected${NC}"
+        elif [ "$mem_mb" -gt 2048 ]; then
+            echo -e "  ${YELLOW}Status: WARNING (${mem_mb}MB) - Monitoring${NC}"
+        else
+            echo -e "  ${GREEN}Status: NORMAL (${mem_mb}MB)${NC}"
+        fi
+    fi
     
     echo -e "\nCurrent Settings:"
     echo "  Reduce Transparency: $(defaults read com.apple.universalaccess reduceTransparency 2>/dev/null || echo 'not set')"
@@ -247,23 +402,33 @@ restore_backup() {
 
 show_help() {
     cat << EOF
-WindowServer Fix Script - Help
+WindowServer Fix Script v2.0 - Help (November 2025)
 
 Usage: $0 [command]
 
 Commands:
-    fix         Apply all fixes (default)
-    status      Show current WindowServer status
-    backup      Backup current settings only
-    restore     Restore from last backup
-    clean       Clean WindowServer cache only
-    help        Show this help message
+    fix                Apply all fixes (default)
+    status             Show current WindowServer status
+    backup             Backup current settings only
+    restore            Restore from last backup
+    clean              Clean WindowServer cache only
+    restart-windowserver  Force restart WindowServer (emergency)
+    sequoia-check      Run Sequoia-specific leak checks only
+    help               Show this help message
+
+2025 Sequoia-Specific Features:
+    • Detects macOS Sequoia (15.x) memory leak patterns
+    • iPhone Mirroring detection and termination
+    • ProMotion display compatibility checks
+    • Ultra-wide display (>5K) warnings
+    • Browser compatibility warnings (Firefox/Chrome fullscreen video)
+    • Memory severity levels: NORMAL < 500MB, WARNING > 2GB, CRITICAL > 5GB
 
 Examples:
-    $0           # Apply all fixes
-    $0 status    # Check current status
-    $0 backup    # Backup settings before making changes
-    $0 restore   # Restore previous settings
+    $0                        # Apply all fixes with Sequoia detection
+    $0 status                 # Check current status with leak assessment
+    $0 sequoia-check          # Run only Sequoia-specific checks
+    $0 restart-windowserver   # Emergency restart (if memory > 20GB)
 
 For more information, visit: https://github.com/yourusername/windowserver-fix
 EOF
@@ -291,6 +456,18 @@ case "${1:-fix}" in
     clean)
         backup_settings
         clean_windowserver_cache
+        ;;
+    restart-windowserver)
+        log_warning "Force restarting WindowServer..."
+        restart_windowserver
+        ;;
+    sequoia-check)
+        if is_sequoia; then
+            sequoia_specific_checks
+        else
+            log_info "Not running macOS Sequoia (version: $(sw_vers -productVersion))"
+            log_info "Sequoia-specific checks not needed"
+        fi
         ;;
     help|--help|-h)
         show_help

@@ -1,14 +1,122 @@
-# Troubleshooting Guide
+# Troubleshooting Guide (v2.0 - November 2025)
+
+## 🚨 macOS Sequoia (15.x) Users - Read This First
+
+If you're running macOS Sequoia and experiencing extreme memory usage (>5GB), you're likely hitting the confirmed Sequoia memory leak bug. See [Sequoia-Specific Issues](#sequoia-specific-issues-2025) below.
+
+**Quick Sequoia Check:**
+```bash
+./fix.sh sequoia-check
+```
 
 ## Quick Diagnostics
 
-Run the diagnostic script to gather information:
+Run the enhanced diagnostic script (includes Sequoia leak detection):
 
 ```bash
 ./monitor.sh diagnostic
 ```
 
-This will create a detailed report in `logs/diagnostic_*.txt`.
+This will create a detailed report in `logs/diagnostic_*.txt` with Sequoia-specific analysis.
+
+## Sequoia-Specific Issues (2025)
+
+### 🔴 Issue: Extreme Memory Usage (5-200GB)
+
+**Symptoms:**
+- WindowServer using 5GB, 20GB, 50GB, or even 200GB RAM
+- Memory grows ~1GB every time you open a new app window
+- Memory is NOT released when you close apps
+- System becomes unresponsive or crashes
+- Issue persists even after clean macOS reinstall
+
+**Diagnosis:**
+```bash
+./fix.sh status
+# Look for "CRITICAL" or "EMERGENCY" severity
+```
+
+**Immediate Solutions:**
+
+1. **Emergency Restart WindowServer (if >20GB)**
+   ```bash
+   ./fix.sh restart-windowserver
+   ```
+   ⚠️ This will log you out immediately!
+
+2. **Kill iPhone Mirroring** (major leak trigger)
+   ```bash
+   pkill "iPhone Mirroring"
+   # Or run: ./fix.sh sequoia-check
+   ```
+
+3. **Close All Unnecessary Apps**
+   - Each app window = ~1GB leak
+   - Use Activity Monitor to see which apps have most windows
+   - Close browser tabs (each tab can trigger the leak)
+
+4. **Enable Automatic Monitoring**
+   ```bash
+   ./daemon.sh start
+   # Auto-restarts WindowServer if memory >20GB
+   ```
+
+**Long-term Solutions:**
+
+1. **Update macOS** - Apple is actively working on fixes
+   ```bash
+   # Check for updates
+   softwareupdate -l
+   ```
+
+2. **Disable iPhone Mirroring Permanently**
+   - System Settings > General > AirDrop & Handoff
+   - Turn off "iPhone Mirroring"
+
+3. **Use Safari Instead of Firefox/Chrome**
+   - Fullscreen video in Firefox/Chrome triggers leaks
+   - Safari has fewer issues
+
+4. **Consider Downgrading to Sonoma**
+   - If leak is making Mac unusable
+   - Backup first!
+
+### 🔴 Issue: iPhone Mirroring Causes Immediate Leak
+
+**Symptoms:**
+- Open iPhone Mirroring → WindowServer RAM balloons
+- Memory never reduces even after closing iPhone Mirroring
+- Can consume 10-50GB within minutes
+
+**Solution:**
+```bash
+# Terminate and disable
+./fix.sh sequoia-check
+# Follow prompts to kill process and get disable instructions
+```
+
+### 🔴 Issue: Ultra-wide Display (>5K) Triggers Severe Leak
+
+**Symptoms:**
+- Samsung Odyssey (7680x2160) or similar ultra-wide connected
+- WindowServer immediately jumps to 5-10GB
+- Continues growing with any window activity
+
+**Solutions:**
+
+1. **Use Default Resolution**
+   - System Settings > Displays
+   - Select "Default for display" (not Scaled)
+
+2. **Reduce Resolution**
+   - Lower to 5K or below temporarily
+   - Test if leak stops
+
+3. **Monitor Continuously**
+   ```bash
+   ./dashboard.sh
+   # Watch memory in real-time
+   ```
 
 ## Common Issues and Solutions
 
