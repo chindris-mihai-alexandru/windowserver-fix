@@ -13,7 +13,7 @@
 [![Version](https://img.shields.io/badge/version-2.0-green.svg)](https://github.com/chindris-mihai-alexandru/windowserver-fix)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
-[Quick Install](#quick-install) • [Features](#features) • [How It Works](#how-it-works) • [FAQ](#faq) • [Troubleshooting](#troubleshooting)
+[Quick Install](#quick-install) • [First Time User?](FIRST_TIME_USER.md) • [Features](#features) • [How It Works](#how-it-works) • [FAQ](#faq) • [Troubleshooting](#troubleshooting)
 
 </div>
 
@@ -67,6 +67,14 @@ chmod +x *.sh
 
 ## ✨ Features
 
+### 📸 Visual Overview
+
+> **Screenshots coming soon!** Examples will include:
+> - Activity Monitor showing WindowServer at 12GB+ memory usage
+> - Terminal output from `./monitor.sh check` with leak detection
+> - Dashboard in action with real-time monitoring
+> - Before/After memory usage comparisons
+
 ### 🎯 Core Capabilities
 
 | Feature | Description |
@@ -113,6 +121,13 @@ All with **cooldown periods** to prevent fix spam (5 min standard, 1 hour emerge
 ```
 
 **Example Output:**
+
+> **Screenshot placeholder:** Terminal showing `./monitor.sh check` with:
+> - CPU & memory stats
+> - Display configuration
+> - Leak detection warnings
+> - Sequoia-specific alerts
+
 ```
 [2025-11-03 15:44:57] === WindowServer Status Check (macOS 15.7.2) ===
 [2025-11-03 15:44:57] CPU Usage: 40.9%
@@ -662,6 +677,32 @@ This tool modifies system preferences. While all changes are:
 **Use at your own risk.** Always backup your data before making system changes.
 
 **Sequoia Leak Disclaimer:** This toolkit provides **mitigation strategies** for the macOS Sequoia memory leak but **cannot fix the underlying OS bug**. Only Apple can resolve this through a macOS update.
+
+---
+
+## 🗺️ Roadmap (v2.1+)
+
+What's coming next (community input welcome!):
+
+### 🔥 High Priority
+- [ ] **One-line curl installer** - Safe remote installation script
+- [ ] **Menu bar app** - Real-time monitoring without terminal
+- [ ] **Intel Mac compatibility testing** - Expand hardware coverage
+- [ ] **Display-specific optimizations** - Better ultra-wide/ProMotion support
+
+### 📊 Medium Priority
+- [ ] **Homebrew formula** - `brew install windowserver-fix`
+- [ ] **Notification improvements** - macOS native alerts with actions
+- [ ] **Dashboard with graphs** - Historical memory visualization
+- [ ] **Auto-update mechanism** - Stay current with latest fixes
+
+### 💡 Nice to Have
+- [ ] **Export metrics to CSV** - Enhanced data analysis
+- [ ] **Activity Monitor integration** - Native UI plugin
+- [ ] **Predictive leak detection** - ML-based early warning
+- [ ] **Community leak database** - Crowdsourced pattern sharing
+
+**Want to contribute?** Check [CONTRIBUTING.md](CONTRIBUTING.md) or [open an issue](https://github.com/chindri-mihai-alexandru/windowserver-fix/issues) with your ideas!
 
 ---
 
