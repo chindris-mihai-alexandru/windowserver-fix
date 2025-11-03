@@ -4,6 +4,14 @@
 # Monitors WindowServer CPU and memory usage with macOS Sequoia (15.x) leak detection
 # Updated November 2025 for current WindowServer memory leak issues
 
+set -e
+
+# Check required dependencies
+if ! command -v bc >/dev/null 2>&1; then
+    echo "Error: bc is required but not installed. Install with: brew install bc" >&2
+    exit 1
+fi
+
 LOG_DIR="$HOME/windowserver-fix/logs"
 LOG_FILE="$LOG_DIR/windowserver_monitor_$(date +%Y%m%d).log"
 METRICS_FILE="$LOG_DIR/metrics.csv"

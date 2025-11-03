@@ -6,8 +6,19 @@
 
 set -e
 
+# Check required dependencies
+if ! command -v bc >/dev/null 2>&1; then
+    echo "Error: bc is required but not installed. Install with: brew install bc" >&2
+    exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_FILE="$SCRIPT_DIR/logs/fix_$(date +%Y%m%d_%H%M%S).log"
+
+# Memory thresholds (MB)
+readonly MEM_THRESHOLD_WARNING=2048
+readonly MEM_THRESHOLD_CRITICAL=5120
+readonly MEM_THRESHOLD_EMERGENCY=20480
 
 # Colors for output
 RED='\033[0;31m'
@@ -447,11 +458,11 @@ show_current_status() {
         echo "  ProMotion: $(system_profiler SPDisplaysDataType | grep -q '120 Hz' && echo 'ENABLED' || echo 'DISABLED')"
         
         # Memory severity assessment
-        if [ "$mem_mb" -gt 20480 ]; then
+        if [ "$mem_mb" -gt "$MEM_THRESHOLD_EMERGENCY" ]; then
             echo -e "  ${RED}Status: EMERGENCY (${mem_mb}MB) - Restart recommended!${NC}"
-        elif [ "$mem_mb" -gt 5120 ]; then
+        elif [ "$mem_mb" -gt "$MEM_THRESHOLD_CRITICAL" ]; then
             echo -e "  ${RED}Status: CRITICAL (${mem_mb}MB) - Leak detected${NC}"
-        elif [ "$mem_mb" -gt 2048 ]; then
+        elif [ "$mem_mb" -gt "$MEM_THRESHOLD_WARNING" ]; then
             echo -e "  ${YELLOW}Status: WARNING (${mem_mb}MB) - Monitoring${NC}"
         else
             echo -e "  ${GREEN}Status: NORMAL (${mem_mb}MB)${NC}"

@@ -273,7 +273,7 @@ recommendation_count=1
 
 if [ "$cache_size" -gt 10000 ]; then
     log_both "$recommendation_count. Clear user caches (${cache_size}MB)"
-    log_both "   Command: rm -rf ~/Library/Caches/*"
+    log_both "   Command: find ~/Library/Caches -mindepth 1 -maxdepth 1 -exec rm -rf {} +"
     ((recommendation_count++))
 fi
 

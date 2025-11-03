@@ -9,6 +9,11 @@ LOG_DIR="$HOME/windowserver-fix/logs"
 LEAK_EVENTS_LOG="$LOG_DIR/leak_events.log"
 PATTERN_REPORT="$LOG_DIR/pattern_analysis_$(date +%Y%m%d_%H%M%S).log"
 
+# Create temp files and ensure cleanup on exit
+TEMP_APPS=$(mktemp)
+TEMP_PAIRS=$(mktemp)
+trap 'rm -f "$TEMP_APPS" "$TEMP_PAIRS"' EXIT
+
 # Color output
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -69,16 +74,15 @@ fi
 log_section "🎯 Apps Most Frequently Present During Leaks"
 
 # Extract all app names from leak events
-temp_apps=$(mktemp)
-awk '/LEAK DETECTED/,/---/' "$LEAK_EVENTS_LOG" | grep -v "LEAK DETECTED" | grep -v "---" | grep -v "^$" > "$temp_apps"
+awk '/LEAK DETECTED/,/---/' "$LEAK_EVENTS_LOG" | grep -v "LEAK DETECTED" | grep -v "---" | grep -v "^$" > "$TEMP_APPS"
 
-if [ -s "$temp_apps" ]; then
+if [ -s "$TEMP_APPS" ]; then
     # Count occurrences of each app
     log_both ""
     log_both "Rank  Count  % of Leaks  Application"
     log_both "----  -----  ----------  -----------"
     
-    sort "$temp_apps" | uniq -c | sort -rn | head -20 | while read count app; do
+    sort "$TEMP_APPS" | uniq -c | sort -rn | head -20 | while read count app; do
         percentage=$((count * 100 / total_events))
         if [ $percentage -gt 70 ]; then
             color=$RED
@@ -97,7 +101,7 @@ else
     log_both "${YELLOW}Unable to extract app data from logs${NC}"
 fi
 
-rm -f "$temp_apps"
+# temp file will be cleaned by trap
 
 # Section 2: High-Risk App Identification
 log_section "🚨 High-Risk Applications (Present in >70% of Leaks)"
@@ -162,7 +166,6 @@ log_both "Apps that frequently appear together during leaks:"
 log_both ""
 
 # Find common app pairs
-temp_pairs=$(mktemp)
 awk '/LEAK DETECTED/{getline; events++; apps=""} /---/{if(apps) print apps; apps=""} !/LEAK DETECTED/ && !/---/ && NF {apps=apps" "$0}' "$LEAK_EVENTS_LOG" | while read -r line; do
     echo "$line" | tr ' ' '\n' | sort | uniq | while read app1; do
         echo "$line" | tr ' ' '\n' | sort | uniq | while read app2; do
@@ -175,12 +178,12 @@ awk '/LEAK DETECTED/{getline; events++; apps=""} /---/{if(apps) print apps; apps
             fi
         done
     done
-done | sort | uniq -c | sort -rn | head -10 > "$temp_pairs"
+done | sort | uniq -c | sort -rn | head -10 > "$TEMP_PAIRS"
 
-if [ -s "$temp_pairs" ]; then
+if [ -s "$TEMP_PAIRS" ]; then
     log_both "Top app combinations (present together during leaks):"
     log_both ""
-    cat "$temp_pairs" | while read count pair; do
+    cat "$TEMP_PAIRS" | while read count pair; do
         app1=$(echo "$pair" | cut -d'|' -f1)
         app2=$(echo "$pair" | cut -d'|' -f2)
         percentage=$((count * 100 / total_events))
@@ -190,7 +193,7 @@ else
     log_both "Insufficient data for correlation analysis"
 fi
 
-rm -f "$temp_pairs"
+# temp file will be cleaned by trap
 
 # Section 6: Recent vs Historical Comparison
 log_section "📅 Recent Trend Analysis"

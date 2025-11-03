@@ -4,6 +4,14 @@
 # Monitors WindowServer and applies fixes when thresholds are exceeded
 # Updated November 2025 for macOS Sequoia (15.x) leak auto-detection
 
+set -e
+
+# Check required dependencies
+if ! command -v bc >/dev/null 2>&1; then
+    echo "Error: bc is required but not installed. Install with: brew install bc" >&2
+    exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_FILE="$SCRIPT_DIR/logs/daemon_$(date +%Y%m%d).log"
 PID_FILE="$SCRIPT_DIR/.daemon.pid"

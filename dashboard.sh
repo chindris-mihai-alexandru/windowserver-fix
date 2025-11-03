@@ -2,6 +2,14 @@
 
 # WindowServer Dashboard - Real-time monitoring
 
+set -e
+
+# Check required dependencies
+if ! command -v bc >/dev/null 2>&1; then
+    echo "Error: bc is required but not installed. Install with: brew install bc" >&2
+    exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Colors
@@ -52,7 +60,7 @@ show_dashboard() {
     ws_pid=$(pgrep WindowServer)
     
     if [ -z "$ws_pid" ]; then
-        echo -e "${RED}ERROR: WindowServer process not found${NC}"
+        echo -e "${RED}ERROR: WindowServer process not found${NC}" >&2
         return 1
     fi
     

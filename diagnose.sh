@@ -4,6 +4,12 @@
 
 set -e
 
+# Check required dependencies
+if ! command -v bc >/dev/null 2>&1; then
+    echo "Error: bc is required but not installed. Install with: brew install bc" >&2
+    exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="$HOME/windowserver-fix/logs"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -356,7 +362,7 @@ fi
 
 if [ "$cache_size" -gt 10000 ]; then
     log_both "6. ${YELLOW}[MEDIUM]${NC} Clear user caches (${cache_size}MB)"
-    log_both "   Safe command: rm -rf ~/Library/Caches/*"
+    log_both "   Safe command: find ~/Library/Caches -mindepth 1 -maxdepth 1 -exec rm -rf {} +"
 fi
 
 if [ "$login_count" -gt 15 ]; then

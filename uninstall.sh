@@ -3,6 +3,8 @@
 # WindowServer Fix - Uninstall Script
 # Safely removes all components of WindowServer Fix
 
+set -e
+
 INSTALL_DIR="$HOME/windowserver-fix"
 LAUNCH_AGENT_PLIST="$HOME/Library/LaunchAgents/com.windowserver-fix.daemon.plist"
 
