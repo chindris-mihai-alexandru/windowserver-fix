@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# WindowServer Fix Script v2.0
-# Implements mitigation strategies for WindowServer high CPU/memory usage
-# Updated November 2025 for macOS Sequoia (15.x) memory leak issues
+# WindowServer Fix Script v2.1
+# Implements intelligent mitigation strategies for WindowServer high CPU/memory usage
+# Updated November 2025 for macOS Sequoia (15.x) with root cause analysis
 
 set -e
 
@@ -292,6 +292,77 @@ restart_windowserver() {
     fi
 }
 
+apply_intelligent_fixes() {
+    log_info "=== Running Intelligent Diagnosis ==="
+    
+    # Check if diagnose.sh exists
+    if [ ! -f "$SCRIPT_DIR/diagnose.sh" ]; then
+        log_warning "diagnose.sh not found - skipping intelligent analysis"
+        return 0
+    fi
+    
+    # Run diagnosis and capture output
+    diag_output=$(bash "$SCRIPT_DIR/diagnose.sh" 2>/dev/null || echo "")
+    
+    # Parse for known culprits
+    obs_detected=$(echo "$diag_output" | grep -q "OBS" && echo "YES" || echo "NO")
+    zoom_detected=$(echo "$diag_output" | grep -q "Zoom" && echo "YES" || echo "NO")
+    chrome_tabs=$(echo "$diag_output" | grep "Chrome.*tabs" | grep -oE '[0-9]+ tabs' | grep -oE '[0-9]+' || echo "0")
+    screen_recording=$(echo "$diag_output" | grep -q "Screen recording active" && echo "YES" || echo "NO")
+    
+    # Apply targeted fixes based on diagnosis
+    if [ "$obs_detected" = "YES" ]; then
+        log_warning "OBS detected - known major leak source (screen recording buffers)"
+        log_info "Recommendation: Close OBS when not actively recording"
+        read -p "Kill OBS now? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            pkill -9 "OBS" 2>/dev/null && log_success "OBS terminated" || log_warning "OBS not running"
+        fi
+    fi
+    
+    if [ "$zoom_detected" = "YES" ]; then
+        log_warning "Zoom detected - video conferencing can cause memory buildup"
+        log_info "Recommendation: Restart Zoom between long meetings"
+        read -p "Restart Zoom now? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            pkill "zoom.us" 2>/dev/null
+            sleep 2
+            open -a "zoom.us" 2>/dev/null && log_success "Zoom restarted" || log_warning "Could not restart Zoom"
+        fi
+    fi
+    
+    if [ "$chrome_tabs" -gt 50 ]; then
+        log_warning "Chrome has ${chrome_tabs} tabs open - can cause WindowServer memory leaks"
+        log_info "Recommendation: Close unused tabs or restart Chrome"
+        read -p "Restart Chrome now? (WARNING: Will close all tabs) (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            pkill "Google Chrome" 2>/dev/null
+            sleep 2
+            log_success "Chrome closed - relaunch manually to restore session"
+        fi
+    fi
+    
+    if [ "$screen_recording" = "YES" ]; then
+        log_warning "Active screen recording detected - constantly buffers frames"
+        log_info "Stop screen recording when not needed to prevent memory buildup"
+    fi
+    
+    # Check for display utilities
+    betterdisp=$(pgrep -q "BetterDisplay" && echo "YES" || echo "NO")
+    switchres=$(pgrep -q "SwitchResX" && echo "YES" || echo "NO")
+    
+    if [ "$betterdisp" = "YES" ] || [ "$switchres" = "YES" ]; then
+        log_warning "Display utility detected (BetterDisplay/SwitchResX)"
+        log_info "These can cause WindowServer issues with custom resolutions"
+        log_info "Consider temporarily disabling to test if they're the cause"
+    fi
+    
+    log_success "=== Intelligent diagnosis complete ==="
+}
+
 emergency_restart_windowserver() {
     log_error "EMERGENCY: Forcing WindowServer restart to prevent system crash"
     log_warning "This will immediately log you out!"
@@ -301,12 +372,15 @@ emergency_restart_windowserver() {
 }
 
 apply_all_fixes() {
-    log_info "=== Starting WindowServer Fix Process (v2.0 - Nov 2025) ==="
+    log_info "=== Starting WindowServer Fix Process (v2.1 - Nov 2025) ==="
     log_info "macOS Version: $(sw_vers -productVersion)"
     
     backup_settings
     
-    # Run Sequoia-specific checks first
+    # Run intelligent diagnosis first (v2.1 feature)
+    apply_intelligent_fixes
+    
+    # Run Sequoia-specific checks
     sequoia_specific_checks
     
     fix_transparency
@@ -328,6 +402,7 @@ apply_all_fixes() {
         log_info "  • Avoid iPhone Mirroring if possible"
         log_info "  • Use Safari instead of Firefox/Chrome for video"
         log_info "  • Monitor memory with: ./monitor.sh monitor"
+        log_info "  • Run diagnosis: ./diagnose.sh"
     fi
     
     log_info "Some changes require a logout/restart to take full effect."
@@ -419,12 +494,12 @@ restore_backup() {
 
 show_help() {
     cat << EOF
-WindowServer Fix Script v2.0 - Help (November 2025)
+WindowServer Fix Script v2.1 - Help (November 2025)
 
 Usage: $0 [command]
 
 Commands:
-    fix                Apply all fixes (default)
+    fix                Apply all fixes (default) with intelligent diagnosis
     status             Show current WindowServer status
     backup             Backup current settings only
     restore            Restore from last backup
@@ -432,6 +507,12 @@ Commands:
     restart-windowserver  Force restart WindowServer (emergency)
     sequoia-check      Run Sequoia-specific leak checks only
     help               Show this help message
+
+v2.1 Intelligent Diagnosis Features:
+    • Detects specific apps causing leaks (OBS, Zoom, Chrome, etc.)
+    • Provides targeted fixes based on root cause
+    • Analyzes browser tab count, screen recording, display config
+    • Offers app-specific recommendations before generic fixes
 
 2025 Sequoia-Specific Features:
     • Detects macOS Sequoia (15.x) memory leak patterns
@@ -442,10 +523,16 @@ Commands:
     • Memory severity levels: NORMAL < 500MB, WARNING > 2GB, CRITICAL > 5GB
 
 Examples:
-    $0                        # Apply all fixes with Sequoia detection
+    $0                        # Apply all fixes with intelligent diagnosis
     $0 status                 # Check current status with leak assessment
     $0 sequoia-check          # Run only Sequoia-specific checks
     $0 restart-windowserver   # Emergency restart (if memory > 20GB)
+
+Companion Tools:
+    ./diagnose.sh             # Run detailed root cause analysis
+    ./health_check.sh         # Check system health
+    ./app_patterns.sh         # Analyze historical leak patterns
+    ./monitor.sh monitor      # Real-time monitoring
 
 For more information, visit: https://github.com/yourusername/windowserver-fix
 EOF

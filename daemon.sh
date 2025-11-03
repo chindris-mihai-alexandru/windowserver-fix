@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_FILE="$SCRIPT_DIR/logs/daemon_$(date +%Y%m%d).log"
 PID_FILE="$SCRIPT_DIR/.daemon.pid"
 HISTORY_FILE="$SCRIPT_DIR/logs/memory_history.txt"
+LEAK_EVENTS_LOG="$SCRIPT_DIR/logs/leak_events.log"
 
 # 2025 Sequoia-Specific Configuration
 CPU_THRESHOLD=60.0
@@ -53,6 +54,21 @@ detect_leak_pattern() {
     fi
     
     return 0  # No leak
+}
+
+log_leak_event() {
+    mem_mb=$1
+    
+    # Log to leak events file for pattern analysis (app_patterns.sh uses this)
+    {
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] LEAK DETECTED - WindowServer: ${mem_mb}MB"
+        echo "Active applications:"
+        
+        # Get all running GUI applications with their memory usage
+        ps aux | awk 'NR>1 && $11 ~ /\.app\// {print $11 " - " $4 "% RAM"}' | sort -t '-' -k2 -rn | head -20
+        
+        echo "---"
+    } >> "$LEAK_EVENTS_LOG"
 }
 
 log() {
@@ -164,6 +180,10 @@ check_and_fix() {
     # Apply mitigation if needed and cooldown expired
     if [ "$needs_action" -eq 1 ] && [ "$time_since_action" -gt "$ACTION_COOLDOWN" ]; then
         log "Applying automatic fixes (type: $action_type)..."
+        
+        # Log leak event for pattern analysis
+        log_leak_event "$mem_mb"
+        
         apply_automatic_fixes "$action_type" "$mem_mb" "$iphone_mirror"
         last_action_time=$(date +%s)
     elif [ "$needs_action" -eq 1 ]; then
