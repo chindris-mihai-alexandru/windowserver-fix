@@ -1,0 +1,42 @@
+[pr_reviewer]
+# Focus review on shell script best practices, security, and macOS compatibility
+extra_instructions = """
+Focus on:
+- Shell script security (input validation, command injection prevention)
+- Error handling and exit codes
+- macOS compatibility and system interactions
+- Memory leak detection logic accuracy
+- Process management safety
+- Root/sudo privilege usage
+- File system operations safety
+"""
+require_tests_review = false
+require_score_review = false
+require_soc2_ticket = false
+
+[pr_code_suggestions]
+num_code_suggestions = 6
+suggestions_score_threshold = 7
+# Rank suggestions by importance for shell scripts
+extra_instructions = """
+Prioritize suggestions for:
+- Security vulnerabilities
+- Error handling improvements
+- Edge case handling
+- Resource cleanup
+- Idempotency
+"""
+
+[pr_description]
+publish_labels = true
+generate_ai_title = false
+use_bullet_points = true
+extra_instructions = """
+Include:
+- What system components are affected
+- Any user-visible changes
+- Security implications if applicable
+"""
+
+[pr_questions]
+num_questions = 3
