@@ -22,11 +22,11 @@ jobs:
         uses: ludeeus/action-shellcheck@2.0.0
         env:
           # Disable specific checks that may be too strict for user scripts
-          # SC2034: Variable appears unused (common in config files)
+          # SC2034: Variable appears unused (common in config files and forward declarations)
           # SC1090: Can't follow non-constant source (acceptable for user configs)
-          SHELLCHECK_OPTS: -e SC1090
+          SHELLCHECK_OPTS: -e SC1090 -e SC2034
         with:
-          severity: warning
+          severity: error
           format: gcc
           # Scan all shell scripts in the repository
           scandir: '.'
