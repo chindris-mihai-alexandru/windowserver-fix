@@ -1,0 +1,76 @@
+name: "Smoke Tests"
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-tests:
+    name: Basic Script Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcb5dd907a8 # v5
+      
+      - name: Check script syntax
+        run: |
+          echo "Validating shell script syntax..."
+          for script in *.sh; do
+            echo "Checking $script..."
+            bash -n "$script"
+          done
+      
+      - name: Verify scripts are executable
+        run: |
+          echo "Checking script permissions..."
+          non_executable=()
+          for script in *.sh; do
+            if [ ! -x "$script" ]; then
+              non_executable+=("$script")
+            fi
+          done
+          
+          if [ ${#non_executable[@]} -gt 0 ]; then
+            echo "❌ The following scripts are not executable:"
+            printf '%s\n' "${non_executable[@]}"
+            exit 1
+          fi
+          echo "✅ All scripts have executable permissions"
+      
+      - name: Test help flags
+        run: |
+          echo "Testing --help flags..."
+          # Test scripts that should support --help
+          scripts_with_help="fix.sh install.sh uninstall.sh monitor.sh dashboard.sh diagnose.sh health_check.sh daemon.sh"
+          
+          for script in $scripts_with_help; do
+            if [ -f "$script" ]; then
+              echo "Testing ./$script --help..."
+              if ./"$script" --help > /dev/null 2>&1; then
+                echo "✅ $script --help works"
+              else
+                echo "⚠️  $script --help returned non-zero (may be expected)"
+              fi
+            fi
+          done
+      
+      - name: Verify config.sh can be sourced
+        run: |
+          echo "Testing config.sh sourcing..."
+          # Create minimal test environment
+          export HOME=/tmp/test-home
+          mkdir -p "$HOME"
+          
+          # Try to source config.sh in a subshell
+          if bash -c 'source ./config.sh && echo "Config loaded successfully"'; then
+            echo "✅ config.sh sources without errors"
+          else
+            echo "❌ config.sh failed to source"
+            exit 1
+          fi

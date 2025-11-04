@@ -1,0 +1,36 @@
+name: "ShellCheck"
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    name: ShellCheck Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        env:
+          # Disable specific checks that may be too strict for user scripts
+          # SC2034: Variable appears unused (common in config files)
+          # SC1090: Can't follow non-constant source (acceptable for user configs)
+          SHELLCHECK_OPTS: -e SC1090
+        with:
+          severity: warning
+          format: gcc
+          # Scan all shell scripts in the repository
+          scandir: '.'
+          # Ignore any backup or test directories
+          ignore_paths: >-
+            backups
+            .git
