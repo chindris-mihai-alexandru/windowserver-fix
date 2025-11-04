@@ -173,7 +173,7 @@ backup_settings() {
     mkdir -p "$backup_dir"
     
     # Backup WindowServer display preferences
-    if [ -f ~/Library/Preferences/ByHost/com.apple.windowserver.* ]; then
+    if ls ~/Library/Preferences/ByHost/com.apple.windowserver.* > /dev/null 2>&1; then
         cp ~/Library/Preferences/ByHost/com.apple.windowserver.* "$backup_dir/" 2>/dev/null || true
     fi
     

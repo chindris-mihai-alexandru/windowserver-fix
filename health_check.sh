@@ -193,7 +193,13 @@ if [ "$user_agents" -gt 30 ]; then
 fi
 
 # Check for known problematic agents
-problematic_agents=$(ls ~/Library/LaunchAgents/*.plist 2>/dev/null | grep -iE "adobe|dropbox|creative" | wc -l | xargs)
+problematic_agents=0
+for agent in ~/Library/LaunchAgents/*.plist; do
+    [ -f "$agent" ] || continue
+    if echo "$agent" | grep -qiE "adobe|dropbox|creative"; then
+        problematic_agents=$((problematic_agents + 1))
+    fi
+done
 if [ "$problematic_agents" -gt 0 ]; then
     log_both "${YELLOW}   Note: Found $problematic_agents agent(s) from Adobe/Dropbox/etc${NC}"
     log_both "   These can contribute to system load"
