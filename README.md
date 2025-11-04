@@ -54,7 +54,7 @@ macOS Sequoia (15.x) has a **confirmed, critical memory leak** in WindowServer:
 ### Manual Install (Recommended)
 
 ```bash
-git clone https://github.com/chindri-mihai-alexandru/windowserver-fix.git
+git clone https://github.com/chindris-mihai-alexandru/windowserver-fix.git
 cd windowserver-fix
 chmod +x *.sh
 ./install.sh
@@ -545,9 +545,9 @@ Based on November 2025 community reports:
 
 ### Related Issues & Research
 
-- [Apple Discussion: Sequoia WindowServer RAM](https://discussions.apple.com/thread/254287194)
-- [Reddit r/MacOS: 96GB WindowServer](https://www.reddit.com/r/MacOS/)
-- [MacRumors: Memory Leak Confirmed](https://forums.macrumors.com/)
+- [Apple Discussion: Sequoia WindowServer Issues](https://discussions.apple.com/search?q=windowserver%20sequoia)
+- [Reddit r/MacOS: WindowServer Memory Leak Discussions](https://www.reddit.com/r/MacOS/search/?q=windowserver+memory+leak&restrict_sr=1)
+- [MacRumors Forums: macOS Sequoia Issues](https://forums.macrumors.com/forums/macos-sequoia-26.2125/)
 - **November 2025 research** (multiple user confirmations of 5-200GB RAM usage)
 
 ---
@@ -666,7 +666,7 @@ See [LICENSE](LICENSE) for full text.
 - Community-tested on M1/M2/M3 Macs
 
 **Special thanks to:**
-- Asahi Lina - GPU driver research and macOS exploitation insights (YouTube: "I hacked macOS!!!")
+- Asahi Lina - GPU driver research and macOS exploitation insights ([YouTube: "I hacked macOS!!!"](https://www.youtube.com/watch?v=hDek2cp0dmI&t=12592s))
 - Reddit r/MacOS community for leak reports
 - Apple Discussion forum contributors
 - Beta testers who validated v2.0 fixes
@@ -718,7 +718,7 @@ Future considerations (community input welcome!)
 - **Predictive leak detection** - ML-based early warning
 - **Community leak database** - Crowdsourced pattern sharing
 
-**Want to contribute?** Check [CONTRIBUTING.md](CONTRIBUTING.md) or [open an issue](https://github.com/chindri-mihai-alexandru/windowserver-fix/issues) with your ideas!
+**Want to contribute?** Check [CONTRIBUTING.md](CONTRIBUTING.md) or [open an issue](https://github.com/chindris-mihai-alexandru/windowserver-fix/issues) with your ideas!
 
 ---
 
@@ -726,7 +726,7 @@ Future considerations (community input welcome!)
 
 ```bash
 # Manual install (recommended for v2.0)
-git clone https://github.com/chindri-mihai-alexandru/windowserver-fix.git
+git clone https://github.com/chindris-mihai-alexandru/windowserver-fix.git
 cd windowserver-fix
 chmod +x *.sh
 ./install.sh
@@ -740,7 +740,7 @@ chmod +x *.sh
 
 **Questions? Issues? Contributions?**
 
-[Open an Issue](https://github.com/chindri-mihai-alexandru/windowserver-fix/issues) • [Submit a PR](https://github.com/chindri-mihai-alexandru/windowserver-fix/pulls) • [Discussions](https://github.com/chindri-mihai-alexandru/windowserver-fix/discussions)
+[Open an Issue](https://github.com/chindris-mihai-alexandru/windowserver-fix/issues) • [Submit a PR](https://github.com/chindris-mihai-alexandru/windowserver-fix/pulls) • [Discussions](https://github.com/chindris-mihai-alexandru/windowserver-fix/discussions)
 
 **Developed and maintained by Mihai Chindris**
 
