@@ -12,6 +12,9 @@
 [![macOS](https://img.shields.io/badge/macOS-13.0%2B-blue.svg)](https://www.apple.com/macos/)
 [![Version](https://img.shields.io/badge/version-2.0-green.svg)](https://github.com/chindris-mihai-alexandru/windowserver-fix)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
+[![ShellCheck](https://github.com/chindris-mihai-alexandru/windowserver-fix/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/chindris-mihai-alexandru/windowserver-fix/actions/workflows/shellcheck.yml)
+[![Smoke Tests](https://github.com/chindris-mihai-alexandru/windowserver-fix/actions/workflows/smoke-tests.yml/badge.svg)](https://github.com/chindris-mihai-alexandru/windowserver-fix/actions/workflows/smoke-tests.yml)
+[![CodeQL](https://github.com/chindris-mihai-alexandru/windowserver-fix/actions/workflows/codeql.yml/badge.svg)](https://github.com/chindris-mihai-alexandru/windowserver-fix/actions/workflows/codeql.yml)
 
 [Quick Install](#quick-install) • [First Time User?](FIRST_TIME_USER.md) • [Features](#features) • [How It Works](#how-it-works) • [FAQ](#faq) • [Troubleshooting](#troubleshooting)
 
@@ -497,6 +500,29 @@ In **November 2025**, macOS Sequoia users started reporting catastrophic WindowS
 ## Contributing
 
 Found a fix that works? Spotted a bug? **We want your help!**
+
+### CI/CD Quality Gates
+
+All pull requests must pass automated quality checks before merging:
+
+| Check | Purpose | Status |
+|-------|---------|--------|
+| **ShellCheck** | Catches shell scripting errors (syntax, quoting, portability) | Required |
+| **Smoke Tests** | Validates script syntax, permissions, help flags | Required |
+| **CodeQL Advanced** | Security scanning for vulnerabilities | Required |
+
+These checks automatically run on every push and pull request to prevent bugs from reaching production. You can run ShellCheck locally:
+
+```bash
+# Install ShellCheck (macOS)
+brew install shellcheck
+
+# Check a specific script
+shellcheck fix.sh
+
+# Check all scripts
+shellcheck *.sh
+```
 
 ### How to Contribute
 
