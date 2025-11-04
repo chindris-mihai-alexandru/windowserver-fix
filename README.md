@@ -666,6 +666,7 @@ See [LICENSE](LICENSE) for full text.
 - Community-tested on M1/M2/M3 Macs
 
 **Special thanks to:**
+- Asahi Lina - GPU driver research and macOS exploitation insights (YouTube: "I hacked macOS!!!")
 - Reddit r/MacOS community for leak reports
 - Apple Discussion forum contributors
 - Beta testers who validated v2.0 fixes
