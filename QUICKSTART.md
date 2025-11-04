@@ -55,7 +55,25 @@ Continuous monitoring (every 30 seconds):
 ./monitor.sh monitor
 ```
 
-### 4. Background Monitoring
+### 4. Configure Settings (v2.1.0+)
+
+Customize behavior before starting monitoring:
+```bash
+# View all available settings
+cat config.sh
+
+# Edit configuration (optional)
+nano config.sh
+```
+
+**Key Settings:**
+- `AUTO_FIX_ENABLED=true/false` - Enable/disable automatic fixes
+- `DRY_RUN=true/false` - Test leak detection without applying fixes
+- `CHECK_INTERVAL=300` - Check frequency in seconds
+- `MEM_THRESHOLD_WARNING=2048` - Warning threshold in MB
+- `GPU_MONITORING_ENABLED=true/false` - Track GPU VRAM usage
+
+### 5. Background Monitoring
 
 Start automatic monitoring:
 ```bash
@@ -138,30 +156,83 @@ If something goes wrong:
 
 ### Best Practice
 
-1. Start daemon on login:
+1. **Configure settings** (first time only):
+   ```bash
+   nano config.sh
+   # Set AUTO_FIX_ENABLED=true for automatic fixes
+   # Set DRY_RUN=false for production use
+   ```
+
+2. Start daemon on login:
    ```bash
    ./daemon.sh start
    ```
 
-2. Check weekly metrics:
+3. Check weekly metrics:
    ```bash
    cat logs/metrics.csv
    ```
 
-3. Run dashboard when you notice issues:
+4. Run dashboard when you notice issues:
    ```bash
    ./dashboard.sh
    ```
 
+### Monitor-Only Mode (v2.1.0+)
+
+Track metrics without applying fixes:
+```bash
+# Edit config.sh
+AUTO_FIX_ENABLED=false
+
+# Restart daemon
+./daemon.sh restart
+```
+
+### Real-Time GPU Monitoring (v2.1.0+)
+
+The dashboard now shows GPU metrics:
+```bash
+./dashboard.sh
+```
+
+Look for:
+- **GPU VRAM**: Memory allocated on GPU
+- **Page Tables**: Virtual memory overhead
+- **Compositor**: Window buffer memory
+- **Leak Patterns**: Recently detected patterns
+
 ## Tips
 
+### Memory Thresholds (Traditional Measurement)
+- **Normal Memory:** 100-300MB
+- **High Memory:** 300-500MB
+- **Critical Memory:** 500MB+
+
+### Understanding VM vs RSS (v2.1.0+)
+macOS reports two types of memory for processes:
+- **VM (Virtual Memory)**: Total address space (shown by `top`)
+- **RSS (Resident Set Size)**: Actual physical RAM used (shown by `ps`)
+
+For WindowServer, VM can be 10-20x larger than RSS due to:
+- **Page tables**: Metadata tracking virtual-to-physical mappings
+- **Compositor buffers**: Offscreen window rendering buffers
+- **GPU shared memory**: Memory-mapped GPU resources
+
+**Normal Ratio**: VM is 2-5x RSS (e.g., 1GB VM, 200-500MB RSS)  
+**Leak Detected**: VM is >10x RSS (e.g., 4GB VM, 200MB RSS = 2000% discrepancy)
+
+This tool tracks both measurements and alerts when the discrepancy indicates a leak.
+
+### CPU Thresholds
 - **Normal CPU Usage:** 5-25%
 - **High CPU Usage:** 40-60%
 - **Critical CPU Usage:** 60%+
 
-- **Normal Memory:** 100-300MB
-- **High Memory:** 300-500MB
-- **Critical Memory:** 500MB+
+### GPU Memory (v2.1.0+)
+- **Normal GPU VRAM:** 0-500MB (idle/basic usage)
+- **High GPU VRAM:** 500-1024MB (active graphics)
+- **Critical GPU VRAM:** 1024MB+ (leak suspected)
 
 ## Keyboard Shortcuts
 

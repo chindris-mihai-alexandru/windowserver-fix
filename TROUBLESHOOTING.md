@@ -120,6 +120,76 @@ This will create a detailed report in `logs/diagnostic_*.txt` with Sequoia-speci
 
 ## Common Issues and Solutions
 
+### 0. Understanding VM/RSS Discrepancy (v2.1.0+)
+
+**What is it?**
+macOS tracks two types of memory for every process:
+- **VM (Virtual Memory)**: Total logical address space (what `top` shows)
+- **RSS (Resident Set Size)**: Actual physical RAM used (what `ps aux` shows)
+
+**Why the difference?**
+From Apple's Memory Management docs, virtual memory includes:
+1. **Active memory pages** in RAM
+2. **Page tables** - kernel structures mapping virtual→physical addresses
+3. **Memory-mapped files** - disk files mapped into address space
+4. **Shared memory regions** - memory shared between processes
+5. **Reserved but unused address space**
+
+**For WindowServer specifically:**
+- **Compositor buffers**: Offscreen rendering buffers for every window
+- **GPU shared memory**: Memory-mapped GPU textures/buffers
+- **Display framebuffers**: Memory for each connected display
+- **Window backing stores**: Cached window content
+
+**Normal ratios:**
+- **Healthy**: VM is 2-5x RSS (e.g., 1.0GB VM / 200MB RSS = 500%)
+- **Concerning**: VM is 5-10x RSS (e.g., 2.0GB VM / 200MB RSS = 1000%)
+- **Critical leak**: VM is >10x RSS (e.g., 4.0GB VM / 200MB RSS = 2000%)
+
+**Why high VM with low RSS indicates a leak:**
+According to [Apple's Virtual Memory documentation](https://developer.apple.com/library/archive/documentation/Performance/Conceptual/ManagingMemory/Articles/AboutMemory.html):
+> "Wired data structures are also associated with the physical page and map tables used to store virtual-memory mapping information. Both of these entities scale with the amount of available physical memory."
+
+When page table overhead grows beyond 1-2GB, it indicates:
+- WindowServer is allocating/freeing memory repeatedly without cleanup
+- Page table entries accumulate without being released
+- Compositor buffers for closed windows remain mapped
+- GPU memory mappings leak after display changes
+
+**How this tool detects it:**
+```bash
+# Pattern 5: Page Table Leak
+# Triggered when: (VM - RSS) > 1024MB
+./fix.sh status
+```
+
+**Diagnosis:**
+```bash
+# Check current discrepancy
+top -l 1 -pid $(pgrep WindowServer) | grep WindowServer
+ps aux | grep WindowServer | grep -v grep
+
+# View in dashboard (v2.1.0+)
+./dashboard.sh
+# Look for "Page Table" metric and "top_ps_discrepancy %"
+```
+
+**Solution:**
+The only reliable fix is restarting WindowServer:
+```bash
+./fix.sh restart-windowserver  # Will log you out!
+```
+
+**Prevention:**
+Enable daemon to auto-restart before reaching critical levels:
+```bash
+# In config.sh
+EMERGENCY_RESTART_ENABLED=true
+MEM_THRESHOLD_EMERGENCY=20480  # 20GB
+```
+
+---
+
 ### 1. High CPU Usage (> 60%)
 
 **Symptoms:**
@@ -176,6 +246,8 @@ This will create a detailed report in `logs/diagnostic_*.txt` with Sequoia-speci
 - System becoming sluggish
 - "Your system has run out of application memory"
 
+**Note:** High VM with low RSS may not be visible in Activity Monitor. Use the dashboard or `./fix.sh status` to check for VM/RSS discrepancy (Pattern 5 leak).
+
 **Diagnosis:**
 ```bash
 ./monitor.sh monitor
@@ -208,6 +280,67 @@ Let it run for 30 minutes to see if memory grows
    - Remove files from Desktop
    - Disable Desktop widgets
    - Close unused Spaces
+
+### 2a. GPU Memory Leak (v2.1.0+)
+
+**Symptoms:**
+- WindowServer VM memory high (2-4GB+) but RSS memory low (<500MB)
+- Page table overhead >1GB (shown in dashboard)
+- Issue persists even after closing all apps
+- Multiple display disconnects/reconnects trigger it
+- Happens more with high-resolution displays (4K+, 5K+)
+
+**Background:**
+Based on GPU driver research (CVE-2022-32947), GPU firmware can leak page table entries when:
+- Display modes change frequently
+- Apps use GPU acceleration then exit without cleanup
+- WindowServer maps/unmaps GPU buffers repeatedly
+- Compositor buffers for closed windows stay mapped
+
+**Diagnosis:**
+```bash
+# Check Pattern 5 detection
+./fix.sh status
+# Look for "LEAK_PATTERN_5: Page table leak"
+
+# View real-time metrics
+./dashboard.sh
+# Look at "Page Table" row (should be <500MB normally)
+```
+
+**Solutions:**
+
+1. **Immediate Fix** - Restart WindowServer (logs you out):
+   ```bash
+   ./fix.sh restart-windowserver
+   ```
+
+2. **Temporary Workaround** - Reduce display resolution:
+   - System Settings > Displays
+   - Use "Default" instead of "Scaled"
+   - For external displays, avoid ultra-wide resolutions
+
+3. **Automated Monitoring** - Let daemon handle it:
+   ```bash
+   # config.sh
+   PAGE_TABLE_MONITORING_ENABLED=true
+   MEM_THRESHOLD_EMERGENCY=20480  # Auto-restart at 20GB
+   
+   ./daemon.sh start
+   ```
+
+4. **Prevent GPU Leaks** - Disable hardware acceleration:
+   - Chrome: Settings → System → Disable "Use hardware acceleration"
+   - Firefox: Preferences → General → Performance → Uncheck hardware acceleration
+   - Electron apps often cause this issue
+
+**Why normal fixes don't work:**
+- Clearing pasteboard: Only helps with clipboard leaks (Pattern 2)
+- Purging memory: Doesn't reclaim page table overhead
+- Restarting Dock: Unrelated to WindowServer page tables
+- System cache clear: Page tables are kernel-managed
+
+Only a full WindowServer restart releases leaked page tables.
 
 ### 3. Crashes on Wake from Sleep
 
@@ -456,3 +589,75 @@ Once you find a stable configuration:
    - Create Time Machine backup
    - Note current settings
    - Wait a few days for bug reports
+
+---
+
+## v2.1.0 Leak Detection Patterns
+
+The tool now detects 6 distinct leak patterns:
+
+### Pattern 1: High Memory with Few Apps
+- **Trigger**: >2GB memory with <5 apps running
+- **Cause**: Memory not released after apps close
+- **Fix**: Clear pasteboard, purge caches
+
+### Pattern 2: Pasteboard Leak
+- **Trigger**: Large clipboard content (images, videos)
+- **Cause**: WindowServer holds clipboard data
+- **Fix**: `pbcopy < /dev/null`
+
+### Pattern 3: Display Resolution Leak
+- **Trigger**: High memory with scaled/non-standard resolutions
+- **Cause**: Compositor buffers for non-native resolution
+- **Fix**: Use default display resolution
+
+### Pattern 4: GPU Memory Leak (NEW in v2.1.0)
+- **Trigger**: GPU VRAM >1GB while RSS stable
+- **Cause**: GPU firmware not releasing VRAM
+- **Detection**: `gpu_vram_mb` in CSV metrics
+- **Fix**: Restart WindowServer
+
+### Pattern 5: Page Table Leak (NEW in v2.1.0)
+- **Trigger**: (VM - RSS) >1GB
+- **Cause**: Page table entries accumulating without release
+- **Detection**: `page_table_mb` and `top_ps_discrepancy` metrics
+- **Fix**: Restart WindowServer (only solution)
+- **Research**: Based on CVE-2022-32947 GPU exploit analysis
+- **Your system**: Currently experiencing this pattern!
+
+### Pattern 6: Compositor Leak (NEW in v2.1.0)
+- **Trigger**: Window buffer memory >2GB
+- **Cause**: Offscreen buffers not freed for closed windows
+- **Detection**: `compositor_mb` in CSV metrics
+- **Fix**: Close spaces, reduce transparency, restart WindowServer
+
+### Viewing Detected Patterns
+
+```bash
+# In dashboard (real-time)
+./dashboard.sh
+# Shows "Leak Patterns (last 100)" section
+
+# In CSV logs (historical)
+tail -20 logs/metrics.csv | awk -F, '{print $1,$15,$16}'
+# Columns: timestamp, severity, leak_pattern
+
+# Check current pattern
+./fix.sh status
+# Displays active leak patterns
+```
+
+### Configuration
+
+Customize thresholds in `config.sh`:
+```bash
+# Pattern 5: Page Table Leak
+PAGE_TABLE_LEAK_THRESHOLD=1024  # MB of VM overhead
+
+# Pattern 4: GPU Memory Leak
+GPU_LEAK_THRESHOLD=1024  # MB of GPU VRAM
+
+# Pattern 6: Compositor Leak  
+COMPOSITOR_LEAK_THRESHOLD=2048  # MB of window buffers
+```
+

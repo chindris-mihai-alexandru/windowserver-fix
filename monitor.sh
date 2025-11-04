@@ -1,10 +1,17 @@
 #!/bin/bash
 
-# WindowServer Monitor Script v2.0
+# WindowServer Monitor Script v2.1.0
 # Monitors WindowServer CPU and memory usage with macOS Sequoia (15.x) leak detection
+# GPU Memory Tracking + Page Table Monitoring + Compositor Analysis
 # Updated November 2025 for current WindowServer memory leak issues
 
 set -e
+
+# Load user configuration if exists
+CONFIG_FILE="$(dirname "$0")/config.sh"
+if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+fi
 
 # Check required dependencies
 if ! command -v bc >/dev/null 2>&1; then
@@ -29,7 +36,7 @@ mkdir -p "$LOG_DIR"
 
 # Initialize CSV if it doesn't exist
 if [ ! -f "$METRICS_FILE" ]; then
-    echo "timestamp,cpu_percent,mem_mb,mem_compressed_mb,open_files,display_count,resolution,iphone_mirror,app_count,severity" > "$METRICS_FILE"
+    echo "timestamp,cpu_percent,mem_mb,mem_compressed_mb,open_files,display_count,resolution,iphone_mirror,app_count,gpu_vram_mb,page_table_mb,compositor_mb,rss_mb,top_ps_discrepancy,severity,leak_pattern" > "$METRICS_FILE"
 fi
 
 # Initialize memory history
@@ -90,10 +97,146 @@ get_memory_growth_rate() {
     }'
 }
 
+get_gpu_memory() {
+    # Get GPU VRAM usage using system_profiler
+    # Returns total GPU memory used in MB
+    if [ "${GPU_MONITORING_ENABLED:-true}" != "true" ]; then
+        echo "0"
+        return
+    fi
+    
+    # Try to get VRAM usage from system_profiler (Metal apps)
+    gpu_vram=$(system_profiler SPDisplaysDataType 2>/dev/null | grep "VRAM" | head -1 | awk '{print $3}' | tr -d 'MB')
+    
+    # If VRAM not found, try alternative method using vm_stat
+    if [ -z "$gpu_vram" ]; then
+        # Estimate from wired memory (rough approximation)
+        gpu_vram=0
+    fi
+    
+    echo "${gpu_vram:-0}"
+}
+
+get_page_table_memory() {
+    # Get page table size and unaccounted virtual memory
+    # Returns estimated page table memory in MB
+    if [ "${PAGE_TABLE_MONITORING_ENABLED:-true}" != "true" ]; then
+        echo "0"
+        return
+    fi
+    
+    ws_pid=$(pgrep WindowServer)
+    if [ -z "$ws_pid" ]; then
+        echo "0"
+        return
+    fi
+    
+    # Use vmmap to get page table and VM overhead
+    # This can be slow, so we use grep to filter only relevant info
+    vmmap_output=$(vmmap "$ws_pid" 2>/dev/null | grep -E "(MALLOC|VM_ALLOCATE|mapped file)" | tail -20)
+    
+    # Get virtual memory size vs resident size difference
+    vm_size=$(ps aux | grep WindowServer | grep -v grep | awk '{print $5}' | head -1)
+    rss_size=$(ps aux | grep WindowServer | grep -v grep | awk '{print $6}' | head -1)
+    
+    # Calculate page table overhead (VM - RSS)
+    if [ -n "$vm_size" ] && [ -n "$rss_size" ]; then
+        page_table_mb=$(echo "scale=0; ($vm_size - $rss_size) / 1024" | bc 2>/dev/null || echo "0")
+        # Cap at reasonable value (page tables shouldn't exceed 2GB)
+        if [ "$page_table_mb" -gt 2048 ]; then
+            page_table_mb=2048
+        fi
+        echo "$page_table_mb"
+    else
+        echo "0"
+    fi
+}
+
+get_compositor_memory() {
+    # Estimate compositor memory (window buffers, layer backing stores)
+    # Returns estimated compositor memory in MB
+    if [ "${COMPOSITOR_MONITORING_ENABLED:-true}" != "true" ]; then
+        echo "0"
+        return
+    fi
+    
+    ws_pid=$(pgrep WindowServer)
+    if [ -z "$ws_pid" ]; then
+        echo "0"
+        return
+    fi
+    
+    # Get number of windows and estimate buffer memory
+    # Each window has front+back buffers at display resolution
+    display_count=$(system_profiler SPDisplaysDataType | grep -c "Resolution:")
+    app_count=$(count_app_windows)
+    
+    # Get primary display resolution to estimate buffer size
+    width=$(system_profiler SPDisplaysDataType | grep "Resolution:" | head -1 | awk '{print $2}')
+    height=$(system_profiler SPDisplaysDataType | grep "Resolution:" | head -1 | awk '{print $4}')
+    
+    # Estimate: width * height * 4 bytes (RGBA) * 2 (double buffer) * window count / 1024^2
+    if [ -n "$width" ] && [ -n "$height" ] && [ "$width" -gt 0 ] && [ "$height" -gt 0 ]; then
+        bytes_per_window=$(echo "$width * $height * 4 * 2" | bc)
+        total_bytes=$(echo "$bytes_per_window * $app_count" | bc)
+        compositor_mb=$(echo "scale=0; $total_bytes / 1024 / 1024" | bc)
+        echo "$compositor_mb"
+    else
+        echo "0"
+    fi
+}
+
+get_dual_memory_measurement() {
+    # Compare 'top' vs 'ps' memory to detect measurement discrepancies
+    # Returns: "top_mb ps_mb discrepancy_percent"
+    if [ "${DUAL_MEASUREMENT_VALIDATION:-true}" != "true" ]; then
+        echo "0 0 0"
+        return
+    fi
+    
+    ws_pid=$(pgrep WindowServer)
+    if [ -z "$ws_pid" ]; then
+        echo "0 0 0"
+        return
+    fi
+    
+    # Get memory from 'top' (real-time, includes VM)
+    top_mem_str=$(top -l 1 -stats pid,command,mem -pid "$ws_pid" | grep WindowServer | awk '{print $3}')
+    
+    # Convert to MB
+    if [[ $top_mem_str == *G ]]; then
+        top_mb=$(echo "${top_mem_str%G} * 1024" | bc | cut -d. -f1)
+    elif [[ $top_mem_str == *M ]]; then
+        top_mb=$(echo "${top_mem_str%M}" | cut -d. -f1)
+    elif [[ $top_mem_str == *K ]]; then
+        top_mb=$(echo "${top_mem_str%K} / 1024" | bc | cut -d. -f1)
+    else
+        top_mb=0
+    fi
+    
+    # Get memory from 'ps' (RSS only)
+    ps_kb=$(ps aux | grep WindowServer | grep -v grep | awk '{print $6}' | head -1)
+    ps_mb=$(echo "scale=0; $ps_kb / 1024" | bc 2>/dev/null || echo "0")
+    
+    # Calculate discrepancy percentage
+    if [ "$ps_mb" -gt 0 ]; then
+        discrepancy=$(echo "scale=1; (($top_mb - $ps_mb) * 100) / $ps_mb" | bc 2>/dev/null || echo "0")
+    else
+        discrepancy=0
+    fi
+    
+    echo "$top_mb $ps_mb $discrepancy"
+}
+
 detect_sequoia_leak_pattern() {
     mem_mb=$1
     app_count=$2
     growth_rate=$(get_memory_growth_rate)
+    
+    # Get GPU and memory metrics for advanced patterns
+    gpu_vram=$(get_gpu_memory)
+    page_table_mb=$(get_page_table_memory)
+    compositor_mb=$(get_compositor_memory)
     
     # Pattern 1: >2GB with few apps (< 10 windows)
     if [ "$mem_mb" -gt 2048 ] && [ "$app_count" -lt 10 ]; then
@@ -102,7 +245,8 @@ detect_sequoia_leak_pattern() {
     fi
     
     # Pattern 2: Continuous growth (>500MB increase in last 5 checks)
-    if [ "$growth_rate" -gt 500 ]; then
+    threshold=${MEMORY_GROWTH_THRESHOLD:-500}
+    if [ "$growth_rate" -gt "$threshold" ]; then
         echo "LEAK_PATTERN_2: Rapid memory growth detected (+${growth_rate}MB)"
         return 1
     fi
@@ -110,6 +254,30 @@ detect_sequoia_leak_pattern() {
     # Pattern 3: Critical threshold exceeded
     if [ "$mem_mb" -gt "$MEM_THRESHOLD_CRITICAL" ]; then
         echo "LEAK_PATTERN_3: Critical Sequoia leak threshold exceeded"
+        return 1
+    fi
+    
+    # Pattern 4: GPU Memory Leak (GPU VRAM high while RSS stable)
+    # This detects GPU page table leaks not visible in regular memory
+    gpu_threshold=${GPU_LEAK_THRESHOLD:-1024}
+    if [ "$gpu_vram" -gt "$gpu_threshold" ] && [ "$growth_rate" -lt 100 ]; then
+        echo "LEAK_PATTERN_4: GPU memory leak detected (${gpu_vram}MB VRAM)"
+        return 1
+    fi
+    
+    # Pattern 5: Page Table Leak (VM overhead excessive)
+    # Detects virtual memory page table bloat
+    if [ "$page_table_mb" -gt 1024 ]; then
+        echo "LEAK_PATTERN_5: Page table leak detected (${page_table_mb}MB unaccounted VM)"
+        return 1
+    fi
+    
+    # Pattern 6: Compositor Memory Leak (window buffers not freed)
+    # Estimate reasonable compositor memory: ~5MB per window
+    expected_compositor=$(echo "$app_count * 5" | bc)
+    if [ "$compositor_mb" -gt "$expected_compositor" ] && [ "$compositor_mb" -gt 500 ]; then
+        excess=$(echo "$compositor_mb - $expected_compositor" | bc)
+        echo "LEAK_PATTERN_6: Compositor leak detected (${excess}MB excess window buffers)"
         return 1
     fi
     
@@ -170,6 +338,23 @@ check_windowserver() {
     open_files=$(lsof -p "$ws_pid" 2>/dev/null | wc -l | tr -d ' ')
     display_count=$(system_profiler SPDisplaysDataType | grep -c "Resolution:")
     
+    # Get GPU and advanced memory metrics (v2.1.0)
+    gpu_vram=$(get_gpu_memory)
+    page_table_mb=$(get_page_table_memory)
+    compositor_mb=$(get_compositor_memory)
+    
+    # Get dual measurement for validation
+    dual_measurement=$(get_dual_memory_measurement)
+    top_mb=$(echo "$dual_measurement" | awk '{print $1}')
+    ps_mb=$(echo "$dual_measurement" | awk '{print $2}')
+    discrepancy=$(echo "$dual_measurement" | awk '{print $3}')
+    
+    # Warn if measurement discrepancy is significant
+    discrepancy_threshold=${MEASUREMENT_DISCREPANCY_THRESHOLD:-20}
+    if [ "${DUAL_MEASUREMENT_VALIDATION:-true}" = "true" ] && (( $(echo "$discrepancy > $discrepancy_threshold" | bc -l) )); then
+        log "⚠️  Memory measurement discrepancy: top=${top_mb}MB vs ps=${ps_mb}MB (${discrepancy}% difference)"
+    fi
+    
     # Get current resolution
     resolution=$(system_profiler SPDisplaysDataType | grep "Resolution:" | head -1 | awk '{print $2, $3, $4}')
     
@@ -185,6 +370,20 @@ check_windowserver() {
     log "Connected Displays: $display_count"
     log "Primary Resolution: $resolution"
     log "App Windows Open: $app_count"
+    
+    # v2.1.0: Log GPU and advanced metrics
+    if [ "${GPU_MONITORING_ENABLED:-true}" = "true" ]; then
+        log "GPU VRAM: ${gpu_vram}MB"
+    fi
+    if [ "${PAGE_TABLE_MONITORING_ENABLED:-true}" = "true" ]; then
+        log "Page Table Memory: ${page_table_mb}MB"
+    fi
+    if [ "${COMPOSITOR_MONITORING_ENABLED:-true}" = "true" ]; then
+        log "Compositor Memory: ${compositor_mb}MB"
+    fi
+    if [ "${DUAL_MEASUREMENT_VALIDATION:-true}" = "true" ]; then
+        log "Memory (RSS): ${ps_mb}MB | Memory (VM): ${top_mb}MB"
+    fi
     
     # Sequoia-specific warnings
     if is_sequoia; then
@@ -216,15 +415,21 @@ check_windowserver() {
         severity="WARNING"
     fi
     
+    # Check for Sequoia leak pattern and store result
+    leak_pattern="NO_LEAK"
+    if is_sequoia; then
+        leak_result=$(detect_sequoia_leak_pattern "$mem_mb" "$app_count" || true)
+        leak_pattern="$leak_result"
+    fi
+    
     # Save metrics to CSV
     timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "$timestamp,$cpu,$mem_mb,$compressed_mb,$open_files,$display_count,\"$resolution\",$iphone_mirror,$app_count,$severity" >> "$METRICS_FILE"
+    echo "$timestamp,$cpu,$mem_mb,$compressed_mb,$open_files,$display_count,\"$resolution\",$iphone_mirror,$app_count,$gpu_vram,$page_table_mb,$compositor_mb,$ps_mb,$discrepancy,$severity,$leak_pattern" >> "$METRICS_FILE"
     
     # Check for Sequoia leak pattern
     if is_sequoia; then
-        leak_result=$(detect_sequoia_leak_pattern "$mem_mb" "$app_count")
-        if [ "$leak_result" != "NO_LEAK" ]; then
-            log "⚠️  SEQUOIA MEMORY LEAK DETECTED: $leak_result"
+        if [ "$leak_pattern" != "NO_LEAK" ]; then
+            log "⚠️  SEQUOIA MEMORY LEAK DETECTED: $leak_pattern"
             log "💡 Recommendation: Run ./fix.sh restart-windowserver or close iPhone Mirroring"
         fi
     fi

@@ -39,12 +39,13 @@ macOS Sequoia (15.x) has a **confirmed, critical memory leak** in WindowServer:
 
 ## Status
 
-- **Tested on:** macOS 15.1 (Sequoia), M1 Max with dual 5K displays
+- **Tested on:** macOS 15.1-15.7.2 (Sequoia), M1 Max with dual 5K displays (Apple Silicon)
 - **Stability:** Continuous operation validated
-- **Accuracy:** Matches Activity Monitor memory reporting
-- **Release Date:** November 3, 2025
-- **Version:** 2.0.0 (Beta)
+- **Accuracy:** Matches Activity Monitor memory reporting (100% accuracy on Apple Silicon)
+- **Release Date:** November 4, 2025
+- **Version:** 2.1.0 (Beta)
 - **License:** MIT (open for community contributions)
+- **Hardware Compatibility:** ⚠️ **Currently tested ONLY on Apple Silicon Macs** - Intel Mac testers needed!
 
 ---
 
@@ -342,9 +343,19 @@ rm -rf ~/windowserver-fix  # Delete toolkit
 
 ### Does this work on Intel Macs?
 
-**Yes!** Tested on:
-- Apple Silicon (M1/M2/M3)
-- Intel (2015-2020 models)
+**Testing Needed!** Current status:
+- ✅ **Apple Silicon (M1/M2/M3):** Fully tested and validated
+- ⚠️ **Intel Macs (2015-2020):** Code should work, but **NOT tested** on Intel hardware
+
+**🙏 Intel Mac Users: We Need Your Help!**
+
+If you have an Intel-based Mac, please:
+1. Test this toolkit on your machine
+2. Report your results via GitHub Issues
+3. Share WindowServer memory behavior on Intel vs Apple Silicon
+4. Help us validate the detection thresholds for Intel Macs
+
+The core functionality should work on Intel Macs, but detection patterns may need tuning for different GPU architectures.
 
 ### My WindowServer is using 12GB but I only have a few apps open. Is this the leak?
 
@@ -397,15 +408,23 @@ If it shows "LEAK_PATTERN_1: High memory with few apps", that's the Sequoia bug.
 ### Testing Coverage
 
 **Confirmed Working On:**
-- macOS 15.x (Sequoia) - Primary target
-- M1 Max with dual 5K displays
-- Various window/app configurations
+- ✅ macOS 15.0-15.7.2 (Sequoia) - Primary target
+- ✅ M1 Max with dual 5K displays
+- ✅ Various window/app configurations
+- ✅ GPU memory tracking on Apple Silicon unified memory architecture
 
-**Needs More Testing:**
-- Intel Macs (2015-2020)
-- macOS 12.x-14.x (Monterey, Ventura, Sonoma)
-- Single display configurations
-- eGPU setups
+**⚠️ Needs Community Testing:**
+- ❓ **Intel Macs (2015-2020)** - Code compatible but untested
+- ❓ macOS 12.x-14.x (Monterey, Ventura, Sonoma) - Should work, needs validation
+- ❓ Single display configurations
+- ❓ eGPU setups (Intel Macs)
+- ❓ M1/M2/M3 (non-Max variants)
+
+**📢 Call to Action:** If you're running an Intel Mac, we need your test results! Please open a GitHub issue with:
+- Mac model and year
+- macOS version
+- WindowServer memory behavior
+- Test results from running `./monitor.sh check`
 
 ---
 

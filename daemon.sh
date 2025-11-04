@@ -1,10 +1,18 @@
 #!/bin/bash
 
-# WindowServer Auto-Fix Daemon v2.0
+# WindowServer Auto-Fix Daemon v2.1.0
 # Monitors WindowServer and applies fixes when thresholds are exceeded
 # Updated November 2025 for macOS Sequoia (15.x) leak auto-detection
+# GPU Memory Tracking + Configurable Settings
 
 set -e
+
+# Load user configuration if exists
+CONFIG_FILE="$(dirname "$0")/config.sh"
+if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+    echo "Loaded configuration from $CONFIG_FILE"
+fi
 
 # Check required dependencies
 if ! command -v bc >/dev/null 2>&1; then
@@ -18,14 +26,20 @@ PID_FILE="$SCRIPT_DIR/.daemon.pid"
 HISTORY_FILE="$SCRIPT_DIR/logs/memory_history.txt"
 LEAK_EVENTS_LOG="$SCRIPT_DIR/logs/leak_events.log"
 
-# 2025 Sequoia-Specific Configuration
-CPU_THRESHOLD=60.0
-MEM_THRESHOLD_WARNING=2048    # 2GB - Start monitoring
-MEM_THRESHOLD_CRITICAL=5120   # 5GB - Apply fixes
-MEM_THRESHOLD_EMERGENCY=20480 # 20GB - Emergency restart
-CHECK_INTERVAL=60
-ACTION_COOLDOWN=300           # Don't apply fixes more than once every 5 minutes
-EMERGENCY_COOLDOWN=3600       # Emergency restart cooldown: 1 hour
+# 2025 Sequoia-Specific Configuration (with config.sh overrides)
+CPU_THRESHOLD=${CPU_THRESHOLD:-60.0}
+MEM_THRESHOLD_WARNING=${MEM_THRESHOLD_WARNING:-2048}
+MEM_THRESHOLD_CRITICAL=${MEM_THRESHOLD_CRITICAL:-5120}
+MEM_THRESHOLD_EMERGENCY=${MEM_THRESHOLD_EMERGENCY:-20480}
+CHECK_INTERVAL=${CHECK_INTERVAL:-300}
+ACTION_COOLDOWN=${COOLDOWN_PERIOD:-300}
+EMERGENCY_COOLDOWN=${COOLDOWN_WINDOWSERVER_RESTART:-3600}
+
+# Mode configuration
+AUTO_FIX_ENABLED=${AUTO_FIX_ENABLED:-true}
+DRY_RUN=${DRY_RUN:-false}
+EMERGENCY_RESTART_ENABLED=${EMERGENCY_RESTART_ENABLED:-true}
+DOCK_RESTART_ENABLED=${DOCK_RESTART_ENABLED:-false}
 
 last_action_time=0
 last_emergency_time=0
@@ -104,6 +118,10 @@ start_daemon() {
     
     echo $$ > "$PID_FILE"
     log "Daemon started with PID $$"
+    log "Mode: $([ "$AUTO_FIX_ENABLED" = "true" ] && echo "Auto-Fix Enabled" || echo "Monitor-Only (Auto-Fix Disabled)")"
+    log "Dry-Run: $([ "$DRY_RUN" = "true" ] && echo "Yes (no changes will be made)" || echo "No")"
+    log "Check Interval: ${CHECK_INTERVAL}s"
+    log "Thresholds: WARNING=${MEM_THRESHOLD_WARNING}MB, CRITICAL=${MEM_THRESHOLD_CRITICAL}MB, EMERGENCY=${MEM_THRESHOLD_EMERGENCY}MB"
     
     while true; do
         check_and_fix
@@ -147,9 +165,22 @@ check_and_fix() {
     
     # Emergency check (Sequoia leak > 20GB)
     if [ "$mem_mb" -gt "$MEM_THRESHOLD_EMERGENCY" ]; then
+        if [ "$EMERGENCY_RESTART_ENABLED" != "true" ]; then
+            log "🚨 EMERGENCY: Memory at ${mem_mb}MB but emergency restart is disabled"
+            log "💡 Enable EMERGENCY_RESTART_ENABLED=true in config.sh or restart manually"
+            return
+        fi
+        
         if [ "$time_since_emergency" -gt "$EMERGENCY_COOLDOWN" ]; then
             log "🚨 EMERGENCY: Memory at ${mem_mb}MB - FORCING WindowServer restart"
-            osascript -e 'display notification "WindowServer using '${mem_mb}'MB - Emergency restart in 10s" with title "WindowServer EMERGENCY" sound name "Basso"' 2>/dev/null
+            
+            if [ "$DRY_RUN" = "true" ]; then
+                log "[DRY-RUN] Would execute: sudo killall -HUP WindowServer"
+                return
+            fi
+            
+            # Notification disabled per user request
+            # osascript -e 'display notification "WindowServer using '${mem_mb}'MB - Emergency restart in 10s" with title "WindowServer EMERGENCY" sound name "Basso"' 2>/dev/null
             sleep 10
             sudo killall -HUP WindowServer
             last_emergency_time=$(date +%s)
@@ -186,16 +217,25 @@ check_and_fix() {
     fi
     
     # Apply mitigation if needed and cooldown expired
-    if [ "$needs_action" -eq 1 ] && [ "$time_since_action" -gt "$ACTION_COOLDOWN" ]; then
-        log "Applying automatic fixes (type: $action_type)..."
+    if [ "$needs_action" -eq 1 ]; then
+        # Check if auto-fix is disabled (monitor-only mode)
+        if [ "$AUTO_FIX_ENABLED" != "true" ]; then
+            log "⚠️  Action needed but AUTO_FIX is disabled (monitor-only mode)"
+            log "💡 Run manually: ./fix.sh or enable AUTO_FIX_ENABLED=true in config.sh"
+            return
+        fi
         
-        # Log leak event for pattern analysis
-        log_leak_event "$mem_mb"
-        
-        apply_automatic_fixes "$action_type" "$mem_mb" "$iphone_mirror"
-        last_action_time=$(date +%s)
-    elif [ "$needs_action" -eq 1 ]; then
-        log "Fixes needed but in cooldown period (${time_since_action}s / ${ACTION_COOLDOWN}s)"
+        if [ "$time_since_action" -gt "$ACTION_COOLDOWN" ]; then
+            log "Applying automatic fixes (type: $action_type)..."
+            
+            # Log leak event for pattern analysis
+            log_leak_event "$mem_mb"
+            
+            apply_automatic_fixes "$action_type" "$mem_mb" "$iphone_mirror"
+            last_action_time=$(date +%s)
+        else
+            log "Fixes needed but in cooldown period (${time_since_action}s / ${ACTION_COOLDOWN}s)"
+        fi
     fi
 }
 
@@ -206,38 +246,61 @@ apply_automatic_fixes() {
     
     log "Applying fixes for: $action_type (MEM=${mem_mb}MB)"
     
+    if [ "$DRY_RUN" = "true" ]; then
+        log "[DRY-RUN MODE] Would apply the following fixes:"
+    fi
+    
     # 1. Kill iPhone Mirroring if active (Sequoia leak trigger)
     if [ "$iphone_mirror" = "1" ]; then
         log "Terminating iPhone Mirroring (Sequoia leak trigger)"
-        pkill "iPhone Mirroring" 2>/dev/null
-        osascript -e 'display notification "iPhone Mirroring terminated to reduce WindowServer memory" with title "WindowServer Auto-Fix"' 2>/dev/null
+        if [ "$DRY_RUN" != "true" ]; then
+            pkill "iPhone Mirroring" 2>/dev/null
+        else
+            log "[DRY-RUN] Would execute: pkill 'iPhone Mirroring'"
+        fi
+        # Notification disabled per user request
+        # osascript -e 'display notification "iPhone Mirroring terminated to reduce WindowServer memory" with title "WindowServer Auto-Fix"' 2>/dev/null
     fi
     
     # 2. Clear pasteboard (can cause memory bloat)
-    pbcopy < /dev/null 2>/dev/null
-    log "Cleared pasteboard"
+    log "Clearing pasteboard"
+    if [ "$DRY_RUN" != "true" ]; then
+        pbcopy < /dev/null 2>/dev/null
+    else
+        log "[DRY-RUN] Would execute: pbcopy < /dev/null"
+    fi
     
     # 3. Kill problematic browser processes in fullscreen
     if pgrep -f "Firefox.*fullscreen" > /dev/null; then
         log "Warning: Firefox in fullscreen detected (known leak trigger)"
     fi
     
-    # 4. Restart Dock (safe and often helps)
-    killall Dock 2>/dev/null
-    log "Restarted Dock"
+    # 4. Dock restart (configurable - disabled by default due to window repositioning)
+    if [ "$DOCK_RESTART_ENABLED" = "true" ]; then
+        log "Restarting Dock (DOCK_RESTART_ENABLED=true)"
+        if [ "$DRY_RUN" != "true" ]; then
+            killall Dock 2>/dev/null
+        else
+            log "[DRY-RUN] Would execute: killall Dock"
+        fi
+    fi
     
     # 5. Log top memory apps
     log "Top memory consuming apps:"
     ps aux | sort -rk 4 | head -5 | awk '{print $11 " - " $4 "%"}' >> "$LOG_FILE"
     
-    # 6. Send notification with action details
-    if [ "$action_type" = "SEQUOIA_LEAK" ]; then
-        osascript -e 'display notification "Sequoia leak detected ('${mem_mb}'MB). Applied automatic fixes. Consider restarting if issue persists." with title "WindowServer Auto-Fix" sound name "Funk"' 2>/dev/null
-    else
-        osascript -e 'display notification "WindowServer high usage detected. Applied automatic fixes." with title "WindowServer Auto-Fix"' 2>/dev/null
-    fi
+    # 6. Notifications disabled per user request
+    # if [ "$action_type" = "SEQUOIA_LEAK" ]; then
+    #     osascript -e 'display notification "Sequoia leak detected ('${mem_mb}'MB). Applied automatic fixes. Consider restarting if issue persists." with title "WindowServer Auto-Fix" sound name "Funk"' 2>/dev/null
+    # else
+    #     osascript -e 'display notification "WindowServer high usage detected. Applied automatic fixes." with title "WindowServer Auto-Fix"' 2>/dev/null
+    # fi
     
-    log "Automatic fixes applied successfully"
+    if [ "$DRY_RUN" = "true" ]; then
+        log "[DRY-RUN] No actual changes were made"
+    else
+        log "Automatic fixes applied successfully"
+    fi
 }
 
 stop_daemon() {
