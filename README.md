@@ -547,7 +547,7 @@ Based on November 2025 community reports:
 
 - [Apple Discussion: Sequoia WindowServer Issues](https://discussions.apple.com/search?q=windowserver%20sequoia)
 - [Reddit r/MacOS: WindowServer Memory Leak Discussions](https://www.reddit.com/r/MacOS/search/?q=windowserver+memory+leak&restrict_sr=1)
-- [MacRumors Forums: macOS Sequoia Issues](https://forums.macrumors.com/forums/macos-sequoia-26.2125/)
+- [MacRumors Forums: WindowServer Sequoia Search](https://forums.macrumors.com/search/?q=windowserver+sequoia)
 - **November 2025 research** (multiple user confirmations of 5-200GB RAM usage)
 
 ---
@@ -740,7 +740,7 @@ chmod +x *.sh
 
 **Questions? Issues? Contributions?**
 
-[Open an Issue](https://github.com/chindris-mihai-alexandru/windowserver-fix/issues) • [Submit a PR](https://github.com/chindris-mihai-alexandru/windowserver-fix/pulls) • [Discussions](https://github.com/chindris-mihai-alexandru/windowserver-fix/discussions)
+[Open an Issue](https://github.com/chindris-mihai-alexandru/windowserver-fix/issues) • [Submit a PR](https://github.com/chindris-mihai-alexandru/windowserver-fix/pulls)
 
 **Developed and maintained by Mihai Chindris**
 
