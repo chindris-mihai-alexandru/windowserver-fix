@@ -76,7 +76,7 @@ detect_promotion() {
 
 count_app_windows() {
     # Count visible application windows (excluding WindowServer itself)
-    windows=$(osascript -e 'tell application "System Events" to count (every window of every process whose background only is false)' 2>/dev/null)
+    windows=$(osascript -e 'tell application "System Events" to count windows of (every process whose background only is false)' 2>/dev/null)
     echo "${windows:-0}"
 }
 
