@@ -1,0 +1,20 @@
+# ShellCheck Configuration
+# Matches CI/CD configuration in .github/workflows/shellcheck.yml
+#
+# Usage: shellcheck *.sh
+#   ShellCheck will automatically load this config from the current directory
+
+# Disable SC1090: Can't follow non-constant source
+# Reason: We use variable-based sourcing for config files (e.g., source "$CONFIG_FILE")
+disable=SC1090
+
+# Disable SC2034: Variable appears unused
+# Reason: Common in config files and forward declarations that are sourced by other scripts
+disable=SC2034
+
+# Enable all optional checks for best practices
+enable=all
+
+# Set severity threshold to 'error' for consistency with CI
+# (Note: This is informational - shellcheck CLI uses -S/--severity flag)
+# In CI we use: severity: error (only fails on errors, not warnings)

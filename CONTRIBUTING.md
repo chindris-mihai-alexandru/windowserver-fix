@@ -91,9 +91,33 @@ Before submitting a PR:
 2. Check all scripts run without errors
 3. Verify backup/restore works
 4. Test on clean install if possible
-5. Run shellcheck on scripts:
+5. Run ShellCheck linting (matches CI configuration):
    ```bash
+   # Install ShellCheck (macOS)
+   brew install shellcheck
+   
+   # Lint all scripts (uses .shellcheckrc config automatically)
    shellcheck *.sh
+   
+   # Check a single script
+   shellcheck fix.sh
+   ```
+   
+   **Note:** The repository includes a `.shellcheckrc` file that matches the CI/CD configuration, so your local linting results will match the automated checks.
+
+6. Run smoke tests manually:
+   ```bash
+   # Test help flags
+   ./fix.sh --help
+   ./monitor.sh --help
+   ./daemon.sh --help
+   
+   # Test version flags
+   ./fix.sh --version
+   ./monitor.sh --version
+   
+   # Syntax check all scripts
+   bash -n *.sh
    ```
 
 #### Pull Request Process
