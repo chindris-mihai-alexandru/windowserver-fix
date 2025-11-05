@@ -5,7 +5,8 @@ set -e
 # Supports: macOS Sequoia 15.0+
 # Usage: ./install.sh (run from cloned repository)
 
-VERSION="2.0.0"
+VERSION="2.1.0"
+RELEASE_DATE="November 2025"
 INSTALL_DIR="$HOME/windowserver-fix"
 REPO_URL="https://github.com/chindri-mihai-alexandru/windowserver-fix"
 LAUNCH_AGENT_PLIST="$HOME/Library/LaunchAgents/com.windowserver-fix.daemon.plist"
@@ -201,4 +202,47 @@ main() {
     echo "For support and updates, visit: $REPO_URL"
 }
 
-main
+show_version() {
+    echo "WindowServer Fix Installer v${VERSION}"
+    echo "Release Date: ${RELEASE_DATE}"
+    echo "macOS Sequoia (15.x) Memory Leak Mitigation Toolkit"
+}
+
+show_help() {
+    cat << EOF
+WindowServer Fix Installer v${VERSION}
+
+Usage: $0 [option]
+
+Options:
+    (no args)  - Run installation (default)
+    version    - Show version information
+    help       - Show this help message
+
+Installation:
+    This script will:
+    1. Check your macOS version
+    2. Install scripts to ~/windowserver-fix/
+    3. Set up automatic monitoring daemon (optional)
+
+For more information, visit: $REPO_URL
+EOF
+}
+
+# Parse arguments
+case "${1:-install}" in
+    install)
+        main
+        ;;
+    version|--version|-v)
+        show_version
+        ;;
+    help|--help|-h)
+        show_help
+        ;;
+    *)
+        echo "Unknown option: $1"
+        show_help
+        exit 1
+        ;;
+esac

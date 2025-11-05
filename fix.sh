@@ -6,6 +6,10 @@
 
 set -e
 
+# Version information
+readonly VERSION="2.1.0"
+readonly RELEASE_DATE="November 2025"
+
 # Check required dependencies
 if ! command -v bc >/dev/null 2>&1; then
     echo "Error: bc is required but not installed. Install with: brew install bc" >&2
@@ -503,6 +507,12 @@ restore_backup() {
     log_success "Restoration complete. Please logout and login again."
 }
 
+show_version() {
+    echo "WindowServer Fix Script v${VERSION}"
+    echo "Release Date: ${RELEASE_DATE}"
+    echo "macOS Sequoia (15.x) Memory Leak Mitigation Toolkit"
+}
+
 show_help() {
     cat << EOF
 WindowServer Fix Script v2.1 - Help (November 2025)
@@ -517,6 +527,7 @@ Commands:
     clean              Clean WindowServer cache only
     restart-windowserver  Force restart WindowServer (emergency)
     sequoia-check      Run Sequoia-specific leak checks only
+    version            Show version information
     help               Show this help message
 
 v2.1 Intelligent Diagnosis Features:
@@ -583,6 +594,9 @@ case "${1:-fix}" in
             log_info "Not running macOS Sequoia (version: $(sw_vers -productVersion))"
             log_info "Sequoia-specific checks not needed"
         fi
+        ;;
+    version|--version|-v)
+        show_version
         ;;
     help|--help|-h)
         show_help

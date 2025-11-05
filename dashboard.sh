@@ -5,6 +5,10 @@
 
 set -e
 
+# Version information
+readonly VERSION="2.1.0"
+readonly RELEASE_DATE="November 2025"
+
 # Load user configuration if exists
 CONFIG_FILE="$(dirname "$0")/config.sh"
 if [ -f "$CONFIG_FILE" ]; then
@@ -290,6 +294,34 @@ show_dashboard() {
     echo "Press Ctrl+C to stop | Refreshing every 5 seconds"
     echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
 }
+
+show_version() {
+    echo "WindowServer Dashboard v${VERSION}"
+    echo "Release Date: ${RELEASE_DATE}"
+    echo "Real-time GPU Memory Tracking + Advanced Leak Detection"
+}
+
+# Parse arguments
+if [ $# -gt 0 ]; then
+    case "$1" in
+        version|--version|-v)
+            show_version
+            exit 0
+            ;;
+        help|--help|-h)
+            echo "Usage: $0 [option]"
+            echo "  (no args)  - Start dashboard (default)"
+            echo "  version    - Show version information"
+            echo "  help       - Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [version|help]"
+            exit 1
+            ;;
+    esac
+fi
 
 # Main loop
 trap "echo; echo 'Dashboard stopped'; exit 0" SIGINT SIGTERM

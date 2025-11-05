@@ -7,6 +7,10 @@
 
 set -e
 
+# Version information
+readonly VERSION="2.1.0"
+readonly RELEASE_DATE="November 2025"
+
 # Load user configuration if exists
 CONFIG_FILE="$(dirname "$0")/config.sh"
 if [ -f "$CONFIG_FILE" ]; then
@@ -342,6 +346,12 @@ status_daemon() {
     fi
 }
 
+show_version() {
+    echo "WindowServer Auto-Fix Daemon v${VERSION}"
+    echo "Release Date: ${RELEASE_DATE}"
+    echo "Automatic leak detection and mitigation for macOS Sequoia"
+}
+
 # Main execution
 mkdir -p "$SCRIPT_DIR/logs"
 
@@ -360,8 +370,21 @@ case "${1:-start}" in
     status)
         status_daemon
         ;;
+    version|--version|-v)
+        show_version
+        ;;
+    help|--help|-h)
+        echo "Usage: $0 {start|stop|restart|status|version|help}"
+        echo "  start   - Start the daemon (default)"
+        echo "  stop    - Stop the daemon"
+        echo "  restart - Restart the daemon"
+        echo "  status  - Check daemon status"
+        echo "  version - Show version information"
+        echo "  help    - Show this help message"
+        exit 0
+        ;;
     *)
-        echo "Usage: $0 {start|stop|restart|status}"
+        echo "Usage: $0 {start|stop|restart|status|version|help}"
         exit 1
         ;;
 esac

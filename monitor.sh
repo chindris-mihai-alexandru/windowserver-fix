@@ -7,6 +7,10 @@
 
 set -e
 
+# Version information
+readonly VERSION="2.1.0"
+readonly RELEASE_DATE="November 2025"
+
 # Load user configuration if exists
 CONFIG_FILE="$(dirname "$0")/config.sh"
 if [ -f "$CONFIG_FILE" ]; then
@@ -532,6 +536,12 @@ capture_diagnostic_info() {
     log "Diagnostic info saved to: $diagnostic_file"
 }
 
+show_version() {
+    echo "WindowServer Monitor Script v${VERSION}"
+    echo "Release Date: ${RELEASE_DATE}"
+    echo "GPU Memory Tracking + Page Table Monitoring + Compositor Analysis"
+}
+
 # Main execution
 case "${1:-check}" in
     check)
@@ -548,11 +558,25 @@ case "${1:-check}" in
     diagnostic)
         capture_diagnostic_info
         ;;
+    version|--version|-v)
+        show_version
+        ;;
+    help|--help|-h)
+        echo "Usage: $0 {check|monitor|diagnostic|version|help}"
+        echo "  check      - Single check of WindowServer status (default)"
+        echo "  monitor    - Continuous monitoring (30s interval)"
+        echo "  diagnostic - Capture full diagnostic information"
+        echo "  version    - Show version information"
+        echo "  help       - Show this help message"
+        exit 0
+        ;;
     *)
-        echo "Usage: $0 {check|monitor|diagnostic}"
+        echo "Usage: $0 {check|monitor|diagnostic|version|help}"
         echo "  check      - Single check of WindowServer status"
         echo "  monitor    - Continuous monitoring (30s interval)"
         echo "  diagnostic - Capture full diagnostic information"
+        echo "  version    - Show version information"
+        echo "  help       - Show this help message"
         exit 1
         ;;
 esac
