@@ -78,12 +78,43 @@ This roadmap outlines improvements to the WindowServer Fix toolkit based on:
 
 ## v2.1.0 - Immediate Improvements (In Progress)
 
-### ✅ Completed (November 4, 2025)
+### ✅ Completed (November 6, 2025)
 - [x] **Window Repositioning Bug** - Removed `killall Dock` from daemon auto-fixes (daemon.sh:226-228)
 - [x] **Notification Spam** - Disabled all 4 notification types in daemon.sh
 - [x] **CI/CD Quality Gates** - ShellCheck, smoke tests, CodeQL security scanning
 - [x] **Branch Protection** - Main branch requires all checks to pass before merge
 - [x] **Documentation** - README and ROADMAP updated with CI/CD details
+- [x] **Local Development Tools** - .shellcheckrc for consistent local linting
+- [x] **Version Flags** - All scripts support --version/-v flag
+- [x] **GPU Memory Tracking** - system_profiler integration for VRAM monitoring
+- [x] **Page Table Detection** - VM vs RSS overhead calculation (capped at 2GB)
+- [x] **Compositor Memory Estimation** - Window count × display resolution buffer calculation
+- [x] **Dual Measurement Validation** - Cross-validates memory using top vs ps
+- [x] **Validation Script** - validate_v2.1.0.sh for automated feature testing
+- [x] **Bug Fix** - Fixed AppleScript window counting syntax error
+
+### 🚧 Testing Gaps (Critical)
+
+#### Intel Mac Testing
+**Priority**: CRITICAL  
+**Effort**: Requires access to Intel Mac hardware  
+**Status**: ⚠️ **All features tested ONLY on Apple Silicon M1 Max**
+
+**Impact:**
+- GPU monitoring may behave differently on discrete AMD/Intel GPUs
+- Page table calculations might differ on Intel architecture
+- Compositor memory estimation assumes Apple Silicon memory architecture
+
+**Action needed:**
+- Community testing on Intel Macs (2015-2020 models)
+- Document Intel-specific quirks or differences
+- Add architecture-specific code paths if needed
+
+#### Feature Validation Needed
+- [ ] **GPU VRAM accuracy** - Compare with Activity Monitor GPU history
+- [ ] **Page table calculation** - Validate against vmmap output
+- [ ] **Compositor estimation** - Verify window buffer size assumptions
+- [ ] **Multi-display setups** - Test on 3+ display configurations
 
 ### 🚧 Next Steps - CI/CD Hardening (Optional, 1-2 days)
 
@@ -91,10 +122,9 @@ This roadmap outlines improvements to the WindowServer Fix toolkit based on:
 **Priority**: MEDIUM  
 **Effort**: 1-2 days
 
-**Option 1: Local Development Tools**
-- Create `.shellcheckrc` config file for consistent local linting
-- Add pre-commit hooks to run ShellCheck before commits
-- Document local development workflow in CONTRIBUTING.md
+**Option 1: Pre-commit Hooks**
+- Add git pre-commit hooks to run ShellCheck before commits
+- Helps catch issues earlier in development workflow
 
 **Option 2: Supply Chain Security**
 - Pin ShellCheck action to SHA (currently uses semantic version `@v2.0.0`)
@@ -102,61 +132,63 @@ This roadmap outlines improvements to the WindowServer Fix toolkit based on:
 - Document security practices
 
 **Option 3: Intel Mac Testing**
-- Add macOS runner workflow (Intel Mac testing)
+- Add manual testing documentation for Intel Macs
+- Create issue templates for hardware-specific bug reports
 - Current smoke tests run on Ubuntu (Linux bash, not macOS)
-- Note: GitHub Actions only provides macOS runners (no Intel-specific option in 2025)
+- Note: GitHub Actions macOS runners are Apple Silicon as of 2025
 
-**Decision Required:** Should we complete CI/CD hardening or move to v2.1.0 feature work?
+**Decision Required:** Should we complete CI/CD hardening or focus on Intel Mac testing?
 
 ---
 
 ### 🎯 Short-term Improvements (Next 2-4 Weeks)
 
-#### 1. Memory Measurement Accuracy
-**Priority**: HIGH  
-**Effort**: 2 days  
-**Based on**: GPU exploit video insights about `top` vs `ps aux`
+#### 1. Memory Measurement Accuracy ✅ IMPLEMENTED
+**Status**: COMPLETE (v2.1.0)  
+**Implemented**: November 6, 2025
 
-**Changes:**
-- Switch from `ps` to `top -l 1` for WindowServer memory readings
-- Add GPU memory tracking via `system_profiler SPDisplaysDataType`
-- Implement dual measurement (RSS + GPU VRAM) for accurate leak detection
-- Add validation checks to compare `top` vs `ps` output
+**Completed features:**
+- ✅ GPU memory tracking via `system_profiler SPDisplaysDataType`
+- ✅ Dual measurement (top vs ps) validation with discrepancy detection
+- ✅ Page table overhead calculation (VM - RSS)
+- ✅ All metrics logged to CSV with timestamps
 
-**Files to modify:**
-- `monitor.sh` - Update `get_windowserver_memory()` function
-- `daemon.sh` - Update memory collection logic
-- `dashboard.sh` - Display both RSS and GPU memory
-
-**Acceptance criteria:**
-- Memory readings match Activity Monitor within 5%
-- GPU VRAM usage tracked separately
-- Historical comparison shows measurement method differences
+**Validation needed:**
+- [ ] Compare GPU readings with Activity Monitor GPU History
+- [ ] Verify page table calculations against vmmap output
+- [ ] Test on Intel Macs with discrete GPUs
 
 ---
 
-#### 2. Enhanced Leak Pattern Detection
-**Priority**: HIGH  
-**Effort**: 3 days  
-**Based on**: Page table leak patterns from GPU research
+#### 2. Enhanced Leak Pattern Detection ✅ PARTIALLY IMPLEMENTED
+**Status**: PATTERNS 1-6 EXIST (monitor.sh:240-287)  
+**Effort**: Testing needed
 
-**New detection patterns:**
+**Existing patterns in code:**
+- ✅ Pattern 1: High memory with few apps (CRITICAL threshold)
+- ✅ Pattern 2: Rapid memory growth (>500MB in 5min)
+- ✅ Pattern 3: Critical Sequoia leak threshold (>5GB)
+- ✅ Pattern 4: Emergency threshold (>20GB) 
+- ✅ Pattern 5: iPhone Mirroring active
+- ✅ Pattern 6: Ultra-wide display detected
 
-**Pattern 4: GPU Memory Leak**
+**New patterns proposed (from GPU research, not yet implemented):**
+
+**Pattern 7: GPU Memory Leak (proposed)**
 ```bash
 # GPU VRAM growing while RSS stays constant
 if gpu_memory_growth > 500MB AND rss_growth < 100MB:
     → GPU_LEAK_DETECTED
 ```
 
-**Pattern 5: Page Table Leak**
+**Pattern 8: Page Table Leak (proposed)**
 ```bash
 # Total memory growth exceeds sum of tracked allocations
 if total_memory > (rss + gpu_vram + swap) + 1GB:
     → PAGE_TABLE_LEAK_SUSPECTED
 ```
 
-**Pattern 6: Compositor Leak**
+**Pattern 9: Compositor Leak (proposed)**
 ```bash
 # Memory correlates with window count but doesn't decrease
 if memory_per_window > 1GB AND windows_closed > 5 AND memory_unchanged:
