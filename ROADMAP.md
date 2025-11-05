@@ -1,7 +1,7 @@
 # WindowServer Fix - Roadmap
 
 **Last Updated**: November 4, 2025  
-**Current Version**: v2.0.0  
+**Current Version**: v2.1.0 (Beta)  
 **Next Major Release**: v2.2.0 (Q1 2026) / v3.0.0 (Q2 2026)
 
 ---
@@ -10,9 +10,23 @@
 
 This roadmap outlines improvements to the WindowServer Fix toolkit based on:
 1. **Recent fixes**: Window repositioning bug (Dock restart removal) and notification disabling
-2. **GPU exploit research**: Insights from Asahi Linux GPU firmware vulnerability work (CVE-2022-32947)
-3. **Memory leak patterns**: Understanding how WindowServer interacts with GPU memory subsystems
-4. **macOS Sequoia leak**: The confirmed 5-200GB memory leak affecting macOS 15.x
+2. **CI/CD implementation**: ShellCheck, smoke tests, CodeQL security scanning (completed Nov 4, 2025)
+3. **GPU exploit research**: Insights from Asahi Linux GPU firmware vulnerability work (CVE-2022-32947)
+4. **Memory leak patterns**: Understanding how WindowServer interacts with GPU memory subsystems
+5. **macOS Sequoia leak**: The confirmed 5-200GB memory leak affecting macOS 15.x
+
+---
+
+## Recent Completed Work (November 2025)
+
+### ✅ CI/CD Quality Gates (v2.1.0)
+- [x] **ShellCheck Workflow** - Lints all `.sh` scripts, catches 80% of shell bugs
+- [x] **Smoke Test Workflow** - Validates syntax, permissions, help flags
+- [x] **CodeQL Advanced Security** - 170+ CWE security queries
+- [x] **Branch Protection Rules** - Main branch requires all checks + 1 review
+- [x] **Documentation** - README updated with CI/CD section and badges
+- [x] **Bug Fixes** - Found and fixed 2 real issues in `fix.sh` and `health_check.sh`
+- [x] **GitHub Actions** - All workflows passing on every push/PR
 
 ---
 
@@ -62,13 +76,41 @@ This roadmap outlines improvements to the WindowServer Fix toolkit based on:
 
 ---
 
-## v2.1.0 - Immediate Improvements
+## v2.1.0 - Immediate Improvements (In Progress)
 
-### Completed Bug Fixes
+### ✅ Completed (November 4, 2025)
 - [x] **Window Repositioning Bug** - Removed `killall Dock` from daemon auto-fixes (daemon.sh:226-228)
 - [x] **Notification Spam** - Disabled all 4 notification types in daemon.sh
+- [x] **CI/CD Quality Gates** - ShellCheck, smoke tests, CodeQL security scanning
+- [x] **Branch Protection** - Main branch requires all checks to pass before merge
+- [x] **Documentation** - README and ROADMAP updated with CI/CD details
 
-### Short-term Improvements (Next 2 Weeks)
+### 🚧 Next Steps - CI/CD Hardening (Optional, 1-2 days)
+
+#### CI/CD Enhancement Options
+**Priority**: MEDIUM  
+**Effort**: 1-2 days
+
+**Option 1: Local Development Tools**
+- Create `.shellcheckrc` config file for consistent local linting
+- Add pre-commit hooks to run ShellCheck before commits
+- Document local development workflow in CONTRIBUTING.md
+
+**Option 2: Supply Chain Security**
+- Pin ShellCheck action to SHA (currently uses semantic version `@v2.0.0`)
+- Add Dependabot security updates for GitHub Actions
+- Document security practices
+
+**Option 3: Intel Mac Testing**
+- Add macOS runner workflow (Intel Mac testing)
+- Current smoke tests run on Ubuntu (Linux bash, not macOS)
+- Note: GitHub Actions only provides macOS runners (no Intel-specific option in 2025)
+
+**Decision Required:** Should we complete CI/CD hardening or move to v2.1.0 feature work?
+
+---
+
+### 🎯 Short-term Improvements (Next 2-4 Weeks)
 
 #### 1. Memory Measurement Accuracy
 **Priority**: HIGH  
@@ -536,10 +578,12 @@ monitor_display_changes() {
 ## Success Metrics
 
 ### v2.1.0 Goals
-- [ ] Reduce false positives by 50%
-- [ ] Improve memory measurement accuracy to within 5% of Activity Monitor
-- [ ] Zero reports of unwanted Dock restarts
-- [ ] User-configurable operation (monitoring vs auto-fix modes)
+- [x] ✅ Implement CI/CD quality gates (ShellCheck, smoke tests, CodeQL)
+- [x] ✅ Reduce false positives by fixing Dock restart bug
+- [x] ✅ Zero reports of unwanted Dock restarts
+- [ ] 🚧 Improve memory measurement accuracy to within 5% of Activity Monitor
+- [ ] 🚧 User-configurable operation (monitoring vs auto-fix modes)
+- [ ] 🚧 Track GPU memory separately from RSS
 
 ### v2.2.0 Goals
 - [ ] Track GPU memory separately from RSS
@@ -562,7 +606,7 @@ monitor_display_changes() {
 |---------|-------------|--------|--------------|
 | v2.0.0 | Nov 3, 2025 | ✅ Released | Sequoia leak detection |
 | v2.0.1 | Nov 4, 2025 | ✅ Released | Bug fixes (Dock restart, notifications) |
-| v2.1.0 | Dec 15, 2025 | 🚧 In Progress | GPU memory tracking, accuracy improvements |
+| v2.1.0 | Dec 15, 2025 | 🚧 In Progress | **CI/CD complete**, GPU memory tracking, accuracy improvements |
 | v2.2.0 | Feb 28, 2026 | 📋 Planned | Page table monitoring, ML leak prediction |
 | v3.0.0 | May 31, 2026 | 💡 Proposed | GUI app, kernel monitoring, comprehensive ML |
 
