@@ -10,7 +10,7 @@
 - Works on all macOS versions (optimized for Sequoia 15.x)
 
 [![macOS](https://img.shields.io/badge/macOS-13.0%2B-blue.svg)](https://www.apple.com/macos/)
-[![Version](https://img.shields.io/badge/version-2.0-green.svg)](https://github.com/chindris-mihai-alexandru/windowserver-fix)
+[![Version](https://img.shields.io/badge/version-2.1.0-green.svg)](https://github.com/chindris-mihai-alexandru/windowserver-fix)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 [![ShellCheck](https://github.com/chindris-mihai-alexandru/windowserver-fix/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/chindris-mihai-alexandru/windowserver-fix/actions/workflows/shellcheck.yml)
 [![Smoke Tests](https://github.com/chindris-mihai-alexandru/windowserver-fix/actions/workflows/smoke-tests.yml/badge.svg)](https://github.com/chindris-mihai-alexandru/windowserver-fix/actions/workflows/smoke-tests.yml)
@@ -95,6 +95,19 @@ chmod +x *.sh
 | **Emergency Auto-Restart** | Prevents crash when memory >20GB (1-hour cooldown) |
 | **Memory Growth Tracking** | Detects >500MB spikes in 5-minute windows |
 
+### Advanced Memory Analysis (v2.1.0)
+
+| Feature | Description |
+|---------|-------------|
+| **GPU VRAM Tracking** | Monitors dedicated GPU memory usage via system_profiler |
+| **Page Table Detection** | Calculates virtual memory overhead (VM - RSS) to detect kernel memory leaks |
+| **Compositor Memory Estimation** | Estimates window buffer memory based on display resolution and window count |
+| **Dual Measurement Validation** | Cross-validates memory using both `top` and `ps` to detect reporting discrepancies |
+
+**Example:** 47 windows at 3456×2234 resolution = ~2.7GB compositor memory overhead
+
+All advanced metrics are logged to CSV (`~/windowserver-fix/logs/metrics.csv`) for trend analysis.
+
 ### Automatic Mitigations
 
 When leak detected, the daemon automatically:
@@ -120,14 +133,19 @@ All with **cooldown periods** to prevent fix spam (5 min standard, 1 hour emerge
 **Example Output:**
 
 ```
-[2025-11-03 15:44:57] === WindowServer Status Check (macOS 15.7.2) ===
-[2025-11-03 15:44:57] CPU Usage: 40.9%
-[2025-11-03 15:44:57] Memory Usage: 12288MB (37.5%)
-[2025-11-03 15:44:57] Connected Displays: 2
-[2025-11-03 15:44:57] iPhone Mirroring: INACTIVE
-[2025-11-03 15:44:57] WARNING: ULTRAWIDE_DETECTED - Known leak trigger
-[2025-11-03 15:44:57] SEQUOIA MEMORY LEAK DETECTED: High memory with few apps
-[2025-11-03 15:44:57] CRITICAL: Memory at 12288MB - Sequoia leak confirmed
+[2025-11-06 00:59:33] === WindowServer Status Check (macOS 15.7.2) ===
+[2025-11-06 00:59:33] CPU Usage: 40.4%
+[2025-11-06 00:59:33] Memory Usage: 6211MB (18.9%)
+[2025-11-06 00:59:34] Connected Displays: 2
+[2025-11-06 00:59:34] Primary Resolution: 3456 x 2234
+[2025-11-06 00:59:34] App Windows Open: 47
+[2025-11-06 00:59:34] GPU VRAM: 0MB
+[2025-11-06 00:59:34] Page Table Memory: 2048MB
+[2025-11-06 00:59:34] Compositor Memory: 2768MB
+[2025-11-06 00:59:34] iPhone Mirroring: INACTIVE
+[2025-11-06 00:59:34] WARNING: ULTRAWIDE_DETECTED - Known leak trigger
+[2025-11-06 00:59:38] ⚠️  SEQUOIA MEMORY LEAK DETECTED: Critical Sequoia leak threshold exceeded
+[2025-11-06 00:59:38] ❌ CRITICAL: Memory at 6211MB - Sequoia leak confirmed
 ```
 
 ### Start Background Monitoring
